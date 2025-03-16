@@ -5,4 +5,4 @@
 
 
 # Licesne
-[LICENSE](./LICENSE.md)
+[LICENSE](./LICENSE)
