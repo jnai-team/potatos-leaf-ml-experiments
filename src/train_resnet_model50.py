@@ -26,6 +26,10 @@ if sys.version_info[0] < 3:
 else:
     unicode = str
 
+curdir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(curdir)
+
+import json
 import torch
 from sklearn.metrics import accuracy_score
 import torchvision
@@ -33,16 +37,21 @@ from torchinfo import summary
 import pandas as pd
 
 # Get ENV
-ENVIRON = os.environ.copy()
-# This task has 7 classes
-NUM_CLASSES = 3
-
+from env import ENV
 import trainer
 from torchvision import transforms
 from image_dataset import model_dataloder
+from common.utils import get_humanreadable_timestamp
 
 
-def get_resnet_dataloaders(model_weights):
+ROOT_DIR = os.path.join(curdir, os.pardir)
+DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
+DATASET_NAME = "sample4"
+MODEL_NAME = "resnet_model50"
+JOB_TIMESTAMP = get_humanreadable_timestamp()
+RESULT_DIR = os.path.join(curdir, os.pardir, "results", MODEL_NAME, JOB_TIMESTAMP)
+
+def get_resnet_dataloaders(model_weights, label2num, split_data_name):
     # resnet_weight.transforms()
     resnet_transform = transforms.Compose([
         transforms.Resize(size=(232, 232)),
@@ -53,7 +62,9 @@ def get_resnet_dataloaders(model_weights):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = model_dataloder(weights=model_weights,
-                                                                                             transform=resnet_transform)
+                                                                                             transform=resnet_transform,
+                                                                                             label2num=label2num,
+                                                                                             split_data_name=split_data_name)
 
     return resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader
 
@@ -88,22 +99,40 @@ def test_accuracy_resnet(model, dataloader, device):
 
 
 def main():
-    target_dir = '../assets/models_results'
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-    # 原main函数中的其他代码
-    training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
-    training_times.to_csv('../assets/models_results/training_time.csv', index=False)
-    #...
-    curdir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(curdir)
+    if not os.path.exists(RESULT_DIR):
+        os.makedirs(RESULT_DIR)
 
+    training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
+    training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
+    
+    '''
+    Load weights
+    '''
     resnet_weight_50 = torchvision.models.ResNet50_Weights.DEFAULT
+
+    '''
+    Load dataloader
+    '''
+    split_data_name = "%s_pp_1" % DATASET_NAME
+    label2num_file = os.path.join(DATA_ROOT_DIR, "%s.labels.label2num.json" % DATASET_NAME)
+    if not os.path.exists(label2num_file):
+        raise "Not exist %s" % label2num_file
+
+    label2num = None
+    with open(label2num_file, "r") as fin:
+        label2num = json.load(fin)
+
+
+    NUM_CLASSES = len(label2num.keys())
+    resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = get_resnet_dataloaders(resnet_weight_50, label2num, split_data_name)
+
+
+    '''
+    Load model
+    '''
     resnet_model_50 = torchvision.models.resnet50(weights=resnet_weight_50)
     resnet_model_50 = trainer.add_custom_layers(resnet_model_50, NUM_CLASSES)
     summary(resnet_model_50)
-
-    resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = get_resnet_dataloaders(resnet_weight_50)
 
     # Actual training ResNet model
     resnet_results, training_time = trainer.training_loop(model=resnet_model_50,
@@ -113,21 +142,21 @@ def main():
                                                           epochs=10,
                                                           patience=5)
 
-    resnet_results.to_csv('../assets/models_results/resnet_model_50.csv', index=False)
+    resnet_results.to_csv(os.path.join(RESULT_DIR, 'resnet_model_50.csv'), index=False)
 
     test_accuracy = test_accuracy_resnet(resnet_model_50, resnet_test_dataloader, trainer.device)
     print(f"Testing Accuracy is {test_accuracy}%")
     print(f'Model Training Time {round(training_time / 60, 4)} Minitues')
 
-    training_times = pd.read_csv('../assets/models_results/training_time.csv')
+    training_times = pd.read_csv(os.path.join(RESULT_DIR, 'training_time.csv'))
     row = {'Model': 'ResNet50', 'Testing Accuracy': test_accuracy,
            'Training_Time(Minutes)': round(training_time / 60, 4)}
 
     # Use the loc method to add the new row to the DataFrame
     training_times.loc[len(training_times)] = row
-    training_times.to_csv('../assets/models_results/training_time.csv', index=False)
+    training_times.to_csv(os.path.join(RESULT_DIR, 'training_time.csv'), index=False)
 
-    torch.save(resnet_model_50, '../assets/trained_models/resnet_model_50.pth')
+    torch.save(resnet_model_50, os.path.join(RESULT_DIR, 'resnet_model_50.pth'))
 
 
 if __name__ == '__main__':

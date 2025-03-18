@@ -43,7 +43,7 @@ DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
 
 # Raw dataset
 class ImageDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, class_labels=None):
 
         """
         Initializes the ImageDataset object.
@@ -57,31 +57,25 @@ class ImageDataset(Dataset):
         self.transform = transform
         self.images = []
         self.labels = []
-        self.class_labels = {}
+        # a mapping of class labels to integers: labels to num
+        self.class_labels = class_labels
 
-        # Create a mapping of class labels to integers
-        self.class_labels = {}
-        class_idx = 0
+        if self.class_labels == None:
+            raise "Invalid class_labels data, should not be None"
 
         # Iterate over sub-directories
         for class_dir in os.listdir(self.root_dir):
             class_dir_path = os.path.join(self.root_dir, class_dir)
             if os.path.isdir(class_dir_path):
-                image_count = 0
-                for img_filename in os.listdir(class_dir_path):
-                    if img_filename.lower().endswith((".jpg", ".jpeg", ".png", ".bmp")):
-                        image_count += 1
-                if image_count == 0:
-                    print(f"Warning: Class directory {class_dir_path} is empty.")
-                self.class_labels[class_dir] = class_idx
-                class_idx += 1
-
                 # Iterate over images in the sub - directory
                 for img_filename in os.listdir(class_dir_path):
                     if img_filename.lower().endswith((".jpg", ".jpeg", ".png", ".bmp")):
                         img_path = os.path.join(class_dir_path, img_filename)
                         self.images.append(img_path)
-                        self.labels.append(self.class_labels[class_dir])
+                        if class_dir in self.class_labels:
+                            self.labels.append(self.class_labels[class_dir])
+                        else:
+                            raise "%s not found in class_labels %s" % (class_dir, self.class_labels)
     def __len__(self):
 
         """
@@ -118,7 +112,7 @@ class ImageDataset(Dataset):
 
 
 # pytorch dataloader
-def model_dataloder(weights, transform, split_data_name="splitted_data_1"):
+def model_dataloder(weights, transform, label2num, split_data_name="sample4_pp_1"):
     """
     Returns three PyTorch DataLoaders for training, validation, and testing.
     
@@ -150,29 +144,21 @@ def model_dataloder(weights, transform, split_data_name="splitted_data_1"):
     val_folder = data_folder + "/valid"
     test_folder = data_folder + "/test"
 
-    # Images from internet
-    image_urls = "testing_images"
-
     # pytorch dataset
-    train_dataset = ImageDataset(train_folder, transform=transform)
-    val_dataset = ImageDataset(val_folder, transform=transform)
-    test_dataset = ImageDataset(test_folder, transform=transform)
+    train_dataset = ImageDataset(train_folder, transform=transform, class_labels=label2num)
+    val_dataset = ImageDataset(val_folder, transform=transform, class_labels=label2num)
+    test_dataset = ImageDataset(test_folder, transform=transform, class_labels=label2num)
 
-    # test downloaded  images 
-    # custom_images = ImageDataset(image_urls, transform = transform)
+    if len(train_dataset) == 0:
+        raise ValueError("Training dataset is empty. Check data source and path.")
+    if len(val_dataset) == 0:
+        raise ValueError("Validation dataset is empty. Check data source and path.")
+    if len(test_dataset) == 0:
+        raise ValueError("Testing dataset is empty. Check data source and path.")
 
     # pytorch dataloader
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False)
     test_dataloader = DataLoader(dataset=test_dataset, batch_size=32, shuffle=False)
-    # custom_dataloader = DataLoader(dataset = custom_images, batch_size = 32, shuffle = False)
-    train_dataset = ImageDataset(train_folder, transform=transform)
-    if len(train_dataset) == 0:
-        raise ValueError("Training dataset is empty. Check data source and path.")
-    val_dataset = ImageDataset(val_folder, transform=transform)
-    if len(val_dataset) == 0:
-        raise ValueError("Validation dataset is empty. Check data source and path.")
-    test_dataset = ImageDataset(test_folder, transform=transform)
-    if len(test_dataset) == 0:
-        raise ValueError("Testing dataset is empty. Check data source and path.")
+    
     return train_dataloader, val_dataloader, test_dataloader
