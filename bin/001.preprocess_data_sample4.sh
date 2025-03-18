@@ -19,7 +19,7 @@ export DATE_WITH_TIME=`date "+%Y%m%d-%H%M%S"` #add %3N as we want millisecond to
 source $baseDir/../.env
 
 cd $baseDir/../src
-python preprocess_data.py Test.test_splitdata
+python preprocess_data.py Test.splitdata_sample4
 
 # if [ ! -d $DATA_ROOT_DIR/splitted_data_1/test/images ]; then
 #   mkdir -p $DATA_ROOT_DIR/splitted_data_1/test/images
