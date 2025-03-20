@@ -102,6 +102,7 @@ def main():
     if not os.path.exists(RESULT_DIR):
         os.makedirs(RESULT_DIR)
 
+    print("Save result into dir", RESULT_DIR)
     training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
     training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
     
@@ -171,7 +172,7 @@ def main():
         "name": "Val Accuracy",
         "numbers": dic_results["Validation_Accuracy"],
         "mode": "lines"
-    })])
+    })], is_show=True)
     # visual.save_figure2img(fig, os.path.join(RESULT_DIR, "accuracy_graph.jpg"))
 
     '''

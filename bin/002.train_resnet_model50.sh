@@ -16,5 +16,14 @@ export DATE_WITH_TIME=`date "+%Y%m%d-%H%M%S"` #add %3N as we want millisecond to
 
 # main 
 [ -z "${BASH_SOURCE[0]}" -o "${BASH_SOURCE[0]}" = "$0" ] || return
+cd $baseDir/..
+
+if [ ! -d tmp ]; then
+    mkdir tmp
+fi
+
 cd $baseDir/../src
-python train_resnet_model50.py
+LOG_FILE=$baseDir/../tmp/train.${DATE_WITH_TIME}.log
+echo ">> Training is started, log to" $LOG_FILE
+python train_resnet_model50.py > $LOG_FILE
+echo "<< DONE"
