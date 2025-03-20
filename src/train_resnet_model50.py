@@ -39,6 +39,7 @@ import pandas as pd
 # Get ENV
 from env import ENV
 import trainer
+import visual
 from torchvision import transforms
 from image_dataset import model_dataloder
 from common.utils import get_humanreadable_timestamp
@@ -78,7 +79,6 @@ def test_accuracy_resnet(model, dataloader, device):
     model.eval()
 
     for images, labels in dataloader:
-
         for label in labels:
             label = label.item()
             actual_label_list.append(label)
@@ -111,7 +111,7 @@ def main():
     resnet_weight_50 = torchvision.models.ResNet50_Weights.DEFAULT
 
     '''
-    Load dataloader
+    Load dataloader and class labels metadata
     '''
     split_data_name = "%s_pp_1" % DATASET_NAME
     label2num_file = os.path.join(DATA_ROOT_DIR, "%s.labels.label2num.json" % DATASET_NAME)
@@ -134,14 +134,50 @@ def main():
     resnet_model_50 = trainer.add_custom_layers(resnet_model_50, NUM_CLASSES)
     summary(resnet_model_50)
 
+    '''
+    Training
+    '''
     # Actual training ResNet model
-    resnet_results, training_time = trainer.training_loop(model=resnet_model_50,
+    dic_results, training_time = trainer.training_loop(model=resnet_model_50,
                                                           train_dataloader=resnet_train_dataloader,
                                                           val_dataloader=resnet_val_dataloader,
                                                           device=trainer.device,
                                                           epochs=10,
                                                           patience=5)
 
+    
+    '''
+    Paint figures
+    '''
+    # Add the 'Train loss' and 'Val loss' traces as lines
+    fig = visual.go_figure(title="Loss over Epochs", xaxis_title="Epochs", yaxis_title="Loss", data=[dict({
+        "name":"Train loss",
+        "numbers": dic_results["Train_loss"],
+        "mode": "lines"
+    }), dict({
+        "name": "Val loss",
+        "numbers": dic_results["Validation_loss"],
+        "mode": "lines"
+    })], is_show=True)
+    # program hangs as https://community.plotly.com/t/plotly-write-image-doesnt-run/63972/3
+    # visual.save_figure2img(fig, os.path.join(RESULT_DIR, "loss_graph.jpg"))
+
+    # Create the figure for the chart
+    fig = visual.go_figure(title="Accuracy over Epochs", xaxis_title="Epochs", yaxis_title="Accuracy", data=[dict({
+        "name": "Train Accuracy",
+        "numbers": dic_results["Train_Accuracy"],
+        "mode": "lines"
+    }), dict({
+        "name": "Val Accuracy",
+        "numbers": dic_results["Validation_Accuracy"],
+        "mode": "lines"
+    })])
+    # visual.save_figure2img(fig, os.path.join(RESULT_DIR, "accuracy_graph.jpg"))
+
+    '''
+    Save metrcis
+    '''
+    resnet_results = pd.DataFrame(dic_results)
     resnet_results.to_csv(os.path.join(RESULT_DIR, 'resnet_model_50.csv'), index=False)
 
     test_accuracy = test_accuracy_resnet(resnet_model_50, resnet_test_dataloader, trainer.device)

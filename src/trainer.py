@@ -29,14 +29,11 @@ if sys.version_info[0] < 3:
 else:
     unicode = str
 
+import time
 import numpy as np
-import pandas as pd
 import torch
 from torch import nn as nn
-import time
 
-import os
-import plotly.graph_objects as go
 
 # Get ENV
 ENVIRON = os.environ.copy()
@@ -131,7 +128,6 @@ def classify_custom_images(model, dataloader, device, df):
     model.eval()
 
     for images, labels in dataloader:
-
         for image in images:
             with torch.inference_mode():
                 image = image.to(device)
@@ -143,6 +139,7 @@ def classify_custom_images(model, dataloader, device, df):
                 label = torch.argmax(logits).item()
                 text_label = df[df['class id'] == label]['labels'].iloc[0]
                 pred_labels.append(text_label)
+    
     return pred_labels
 
 
@@ -210,7 +207,7 @@ def training_loop(model, train_dataloader, val_dataloader, device, epochs, patie
             break
 
     # Saving Results for model
-    dic = {
+    dic_results = {
         "epochs": list(range(1, epochs + 1)),
         'Train_loss': results["train_loss"],
         'Train_Accuracy': results['train_acc'],
@@ -219,48 +216,5 @@ def training_loop(model, train_dataloader, val_dataloader, device, epochs, patie
         'Time_Taken': epoch_run_time
 
     }
-    model_results = pd.DataFrame(dic)
 
-    # Create the figure for the chart
-    fig = go.Figure()
-    # Add the 'Train loss' and 'Val loss' traces as lines
-    fig.add_trace(go.Scatter(x=list(range(1, len(results["train_loss"]) + 1)),
-                             y=results["train_loss"], mode='lines', name='Train loss'))
-    fig.add_trace(go.Scatter(x=list(range(1, len(results["val_loss"]) + 1)),
-                             y=results["val_loss"], mode='lines', name='Val loss'))
-
-    # Update the layout for better visualization
-    fig.update_layout(title="Loss over Epochs",
-                      xaxis_title="Epochs",
-                      yaxis_title="Loss",
-                      legend=dict(x=0.05, y=1.1),
-                      width=800, height=400)
-
-    # Create the figure for the chart
-    fig2 = go.Figure()
-    # Add the 'Train loss' and 'Val loss' traces as lines
-    fig2.add_trace(go.Scatter(x=list(range(1, len(results["train_acc"]) + 1)),
-                              y=results["train_acc"], mode='lines', name='Train Accuracy'))
-    fig2.add_trace(go.Scatter(x=list(range(1, len(results["val_acc"]) + 1)),
-                              y=results["val_acc"], mode='lines', name='Val Accuracy'))
-
-    # Update the layout for better visualization
-    fig2.update_layout(title="Accuracy over Epochs",
-                       xaxis_title="Epochs",
-                       yaxis_title="Accuracy",
-                       legend=dict(x=0.05, y=1.1),
-                       width=800, height=400)
-
-    # combined_fig.show()
-    fig.show()
-    fig2.show()
-
-    return model_results, training_time
-
-
-def main():
-    train()
-
-
-if __name__ == '__main__':
-    main()
+    return dic_results, training_time
