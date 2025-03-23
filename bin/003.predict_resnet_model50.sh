@@ -23,6 +23,6 @@ if [ ! -d tmp ]; then
 fi
 
 cd $baseDir/../src
-echo ">> Training is started"
-python resnet/model50_train.py
+echo ">> Predicting is started"
+python resnet/model50_predict.py
 echo "<< DONE"

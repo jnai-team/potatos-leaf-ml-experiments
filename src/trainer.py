@@ -143,13 +143,20 @@ def classify_custom_images(model, dataloader, device, df):
     return pred_labels
 
 
-def training_loop(model, train_dataloader, val_dataloader, device, epochs, patience):
+def training_loop(model, 
+                  train_dataloader, 
+                  val_dataloader, 
+                  device, 
+                  epochs, 
+                  lr,
+                  patience, 
+                  logger):
     # empty dict for restore results
     results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 
     # hardcode loss_fn and optimizer
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # variable to hold the training time
     training_time = 0.0
@@ -180,7 +187,7 @@ def training_loop(model, train_dataloader, val_dataloader, device, epochs, patie
         training_time += epoch_time
 
         # print results for each epoch
-        print(f"Epoch: {epoch + 1}\n"
+        logger.info(f"Epoch: {epoch + 1}\n"
               f"Train loss: {train_loss:.4f} | Train accuracy: {(train_acc * 100):.3f}%\n"
               f"Val loss: {val_loss:.4f} | Val accuracy: {(val_acc * 100):.3f}%\n"
               f"| Epoch time: {epoch_time:.2f} seconds")

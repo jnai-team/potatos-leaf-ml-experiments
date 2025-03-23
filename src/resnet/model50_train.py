@@ -27,7 +27,7 @@ else:
     unicode = str
 
 curdir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(curdir)
+sys.path.insert(0, os.path.join(curdir, os.pardir))
 
 import json
 import torch
@@ -43,25 +43,22 @@ import visual
 from torchvision import transforms
 from image_dataset import model_dataloder
 from common.utils import get_humanreadable_timestamp
+from common.logger import FileLogger
 
-
-ROOT_DIR = os.path.join(curdir, os.pardir)
+ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
 DATASET_NAME = "sample4"
 MODEL_NAME = "resnet_model50"
-JOB_TIMESTAMP = get_humanreadable_timestamp()
-RESULT_DIR = os.path.join(curdir, os.pardir, "results", MODEL_NAME, JOB_TIMESTAMP)
+MODEL_ID = get_humanreadable_timestamp()
+RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
+HYPER_PARAMS_FILE = os.path.join(RESULT_DIR, "hyper_params.json") # 超参数
+HYPER_PARAMS = dict()
+LOG_FILE = os.path.join(RESULT_DIR, "train.log")
+logger = FileLogger(LOG_FILE)
 
 def get_resnet_dataloaders(model_weights, label2num, split_data_name):
     # resnet_weight.transforms()
-    resnet_transform = transforms.Compose([
-        transforms.Resize(size=(232, 232)),
-        transforms.ColorJitter(brightness=(0.8, 1.2)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(degrees=15),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    from resnet.transforms import resnet_transform
     resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = model_dataloder(weights=model_weights,
                                                                                              transform=resnet_transform,
                                                                                              label2num=label2num,
@@ -102,7 +99,8 @@ def main():
     if not os.path.exists(RESULT_DIR):
         os.makedirs(RESULT_DIR)
 
-    print("Save result into dir", RESULT_DIR)
+    print("Save result into dir %s" % RESULT_DIR)
+    print("Log file %s" % LOG_FILE)
     training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
     training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
     
@@ -133,18 +131,26 @@ def main():
     '''
     resnet_model_50 = torchvision.models.resnet50(weights=resnet_weight_50)
     resnet_model_50 = trainer.add_custom_layers(resnet_model_50, NUM_CLASSES)
-    summary(resnet_model_50)
+    logger.info(summary(resnet_model_50))
 
     '''
     Training
     '''
     # Actual training ResNet model
+    HYPER_PARAMS["lr"] = 0.0005
+    HYPER_PARAMS["epochs"] = 10
+    HYPER_PARAMS["patience"] = 5
+    with open(HYPER_PARAMS_FILE, "w") as fout:
+        json.dump(HYPER_PARAMS, fout, ensure_ascii=False, indent=4)
+        
     dic_results, training_time = trainer.training_loop(model=resnet_model_50,
                                                           train_dataloader=resnet_train_dataloader,
                                                           val_dataloader=resnet_val_dataloader,
                                                           device=trainer.device,
-                                                          epochs=10,
-                                                          patience=5)
+                                                          epochs=HYPER_PARAMS["epochs"],
+                                                          lr=HYPER_PARAMS["lr"],
+                                                          patience=HYPER_PARAMS["patience"],
+                                                          logger=logger)
 
     
     '''
@@ -179,11 +185,11 @@ def main():
     Save metrcis
     '''
     resnet_results = pd.DataFrame(dic_results)
-    resnet_results.to_csv(os.path.join(RESULT_DIR, 'resnet_model_50.csv'), index=False)
+    resnet_results.to_csv(os.path.join(RESULT_DIR, 'train.csv'), index=False)
 
     test_accuracy = test_accuracy_resnet(resnet_model_50, resnet_test_dataloader, trainer.device)
-    print(f"Testing Accuracy is {test_accuracy}%")
-    print(f'Model Training Time {round(training_time / 60, 4)} Minitues')
+    logger.info(f"Testing Accuracy is {test_accuracy}%")
+    logger.info(f'Model Training Time {round(training_time / 60, 4)} Minitues')
 
     training_times = pd.read_csv(os.path.join(RESULT_DIR, 'training_time.csv'))
     row = {'Model': 'ResNet50', 'Testing Accuracy': test_accuracy,
@@ -193,7 +199,7 @@ def main():
     training_times.loc[len(training_times)] = row
     training_times.to_csv(os.path.join(RESULT_DIR, 'training_time.csv'), index=False)
 
-    torch.save(resnet_model_50, os.path.join(RESULT_DIR, 'resnet_model_50.pth'))
+    torch.save(resnet_model_50, os.path.join(RESULT_DIR, 'model.pth'))
 
 
 if __name__ == '__main__':

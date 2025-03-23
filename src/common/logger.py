@@ -21,7 +21,6 @@ __date__ = "2020-03-21:14:44:42"
 
 import os
 import sys
-import json
 
 curdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(curdir, os.pardir))
@@ -30,6 +29,9 @@ if sys.version_info[0] < 3:
     raise RuntimeError("Must be using Python 3")
 else:
     unicode = str
+
+import json
+from datetime import datetime
 
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 print("LOG_LEVEL %s" % LOG_LEVEL)
@@ -45,6 +47,13 @@ INFO = 20
 DEBUG = 10
 NOTSET = 0
 
+
+def get_humanreadable_timestamp():
+    """
+    获得Unix 时间戳
+    :return: Float Number, use int(get_time_stamp()) to get Seconds Timestamp
+    """
+    return datetime.today().strftime('%Y/%m/%d %H:%M:%S')
 
 class Logger(logging.Logger):
     """
@@ -72,6 +81,38 @@ class Logger(logging.Logger):
         else:
             stream_handler.setLevel(level)
         self.addHandler(stream_handler)
+
+
+class FileLogger():
+    """
+    Logging to file
+    """
+
+    def __init__(self, logfile):
+        '''
+        Init logger
+        '''
+        self.logfile = logfile
+
+    def append(self, level, msg):
+        ts = get_humanreadable_timestamp()
+        with open(self.logfile, "a") as fout:
+            fout.writelines(["%s [%s] %s\n" % (ts, level, msg)])
+
+    def debug(self, msg):
+        self.append("DEBUG", msg)
+
+    def info(self, msg):
+        self.append("INFO", msg)
+
+    def warn(self, msg):
+        self.append("WARN", msg)
+
+    def error(self, msg):
+        self.append("ERROR", msg)
+
+    def remove(self):
+        os.remove(self.logfile)
 
 
 def pretty(j, indent=4, sort_keys=True):
