@@ -39,7 +39,7 @@ from resnet.transforms import resnet_transform
 
 ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
-DATASET_NAME = "sample4"
+DATASET_NAME = ENV.str("DATASET_NAME", None)
 MODEL_NAME = "resnet_model50"
 MODEL_ID = ENV.str("MODEL_ID", None)
 RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
@@ -137,7 +137,7 @@ def main():
     '''
     load all images as targets
     '''
-    output_lines = ["image,desired,predicted\n"]
+    output_lines = ["image,actually,predicted\n"]
     for _, _, images in os.walk(PREDICT_TARGETS_DIR):
         total_files = len(images)
         logger.info("%s has %s files" % (PREDICT_TARGETS_DIR, total_files))
