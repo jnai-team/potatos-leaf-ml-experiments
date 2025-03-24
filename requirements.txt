@@ -19,3 +19,6 @@ torchsummary
 torchvision
 tzdata
 watchdog
+# stick with old version to fix figure.write_image failure.
+# https://github.com/plotly/Kaleido/issues/134
+kaleido==0.1.0.post1

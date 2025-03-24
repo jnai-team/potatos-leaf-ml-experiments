@@ -93,11 +93,17 @@ class FileLogger():
         Init logger
         '''
         self.logfile = logfile
+        parent_dir = os.path.dirname(self.logfile)
+
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
     def append(self, level, msg):
         ts = get_humanreadable_timestamp()
-        with open(self.logfile, "a") as fout:
-            fout.writelines(["%s [%s] %s\n" % (ts, level, msg)])
+        with open(self.logfile, "a", encoding="utf-8") as fout:
+            fmsg = "%s [%s] %s\n" % (ts, level, msg)
+            fout.write(fmsg)
+            print(fmsg)
 
     def debug(self, msg):
         self.append("DEBUG", msg)

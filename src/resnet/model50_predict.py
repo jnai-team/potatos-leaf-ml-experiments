@@ -30,6 +30,7 @@ else:
 import json
 import torch
 from PIL import Image
+import pathlib
 
 # Get ENV
 from env import ENV
@@ -48,6 +49,17 @@ PREDICT_LOG = os.path.join(RESULT_DIR, "predict.log")
 
 logger = FileLogger(PREDICT_LOG)
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+'''
+Parse predict data labels
+'''
+PREDICT_TARGETS_LABEL=None
+if "#" in PREDICT_TARGETS_DIR:
+    splits = PREDICT_TARGETS_DIR.split("#")
+    PREDICT_TARGETS_DIR = splits[0].rstrip()
+    PREDICT_TARGETS_LABEL = splits[1].rstrip()
+else:
+    PREDICT_TARGETS_LABEL=pathlib.PurePath(PREDICT_TARGETS_DIR).name
 
 '''
 Save png,jpg,jpeg images as predict targets in dir PREDICT_TARGETS_DIR
@@ -125,18 +137,29 @@ def main():
     '''
     load all images as targets
     '''
-    output_lines = ["imageName,class\n"]
+    output_lines = ["image,desired,predicted\n"]
     for _, _, images in os.walk(PREDICT_TARGETS_DIR):
         total_files = len(images)
         logger.info("%s has %s files" % (PREDICT_TARGETS_DIR, total_files))
-        
+        corrected = 0
+        total = 0
+
         for x in images:
             if x.endswith(".png") or x.endswith(".jpg"):
-                num = predict(model, os.path.join(PREDICT_TARGETS_DIR, x), num2label)
+                image_path = os.path.join(PREDICT_TARGETS_DIR, x)
+                label = predict(model, image_path, num2label)
+                output_lines.append("%s,%s,%s\n" % (image_path, PREDICT_TARGETS_LABEL, label))
 
-    with open(PREDICT_RESULT, "w") as fout:
+                if PREDICT_TARGETS_LABEL == label:
+                    corrected += 1
+
+                total += 1
+
+    with open(PREDICT_RESULT, "w", encoding="utf-8") as fout:
         fout.writelines(output_lines)
 
+
+    logger.info("Precision %s/%s" % (corrected, total))
 
 main()
 

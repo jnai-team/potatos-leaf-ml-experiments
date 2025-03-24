@@ -60,7 +60,7 @@ def go_figure(title, xaxis_title, yaxis_title, data, is_show=True, \
     return fig
 
 
-def save_figure2img(fig, filepath, width=800, height=400):
+def save_figure2jpg(fig, filepath, width=800, height=400):
     '''
     save figure file to image
     '''

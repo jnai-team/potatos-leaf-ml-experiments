@@ -153,7 +153,7 @@ def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
         for x in range(test_num):
             shutil.move(os.path.join(valid_dir, images[x]), test_dir)
 
-def splitdata_sample4():
+def split_dataset(dataset_name):
     if not DATA_ROOT_DIR:
         print("DATA_ROOT_DIR not def in ENV")
         raise "Env not found error."
@@ -165,10 +165,10 @@ def splitdata_sample4():
 
     console_log(">> handle data on %s" % DATA_ROOT_DIR)
     
-    DATASET_NAME = "sample4"
-    DATA_SAMPLE4_DIR = os.path.join(DATA_ROOT_DIR, DATASET_NAME)
-    if not os.path.exists(DATA_SAMPLE4_DIR):
-        console_log("DATA_SAMPLE4_DIR not exist on filesystem %s" % DATA_SAMPLE4_DIR)
+    DATASET_NAME = dataset_name
+    DATASET_DIR = os.path.join(DATA_ROOT_DIR, DATASET_NAME)
+    if not os.path.exists(DATASET_DIR):
+        console_log("DATASET_DIR not exist on filesystem %s" % DATASET_DIR)
 
     # generate class labels csv file
     label_class_csv = os.path.join(DATA_ROOT_DIR, "%s.labels.autogen.csv" % DATASET_NAME)
@@ -176,13 +176,13 @@ def splitdata_sample4():
     with open(label_class_csv, "w") as fout:
         fout.writelines(["filepath,label\n"])
 
-    DATA_SAMPLE4_PATH = Path(DATA_SAMPLE4_DIR)
+    DATA_SAMPLE4_PATH = Path(DATASET_DIR)
     # https://docs.python.org/3/library/pathlib.html#general-properties
     subclassfolder = [f.parts[-1] for f in DATA_SAMPLE4_PATH.iterdir() if f.is_dir()]
     
     output_lines = []
     for x in subclassfolder:
-        target_images_folder = os.path.join(DATA_SAMPLE4_DIR, x)
+        target_images_folder = os.path.join(DATASET_DIR, x)
         for _, _, images in os.walk(target_images_folder):
             for y in images:
                 output_lines.append("%s/%s/%s,%s\n" % (DATASET_NAME, x,y,x))
@@ -282,7 +282,11 @@ class Test(unittest.TestCase):
 
     def splitdata_sample4(self):
         print("splitdata_sample4")
-        splitdata_sample4()
+        split_dataset("sample4")
+
+    def splitdata_plantvillage(self):
+        print("splitdata_plantvillage")
+        split_dataset("PlantVillage")
 
 
 def test():

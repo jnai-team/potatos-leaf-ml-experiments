@@ -35,9 +35,11 @@ from sklearn.metrics import accuracy_score
 import torchvision
 from torchinfo import summary
 import pandas as pd
+import shutil
+
 
 # Get ENV
-from env import ENV
+from env import ENV, ENV_LOCAL_RC
 import trainer
 import visual
 from torchvision import transforms
@@ -47,7 +49,8 @@ from common.logger import FileLogger
 
 ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
-DATASET_NAME = "sample4"
+# DATASET_NAME = "sample4"
+DATASET_NAME = ENV.str("DATASET_NAME", None)
 MODEL_NAME = "resnet_model50"
 MODEL_ID = get_humanreadable_timestamp()
 RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
@@ -55,6 +58,13 @@ HYPER_PARAMS_FILE = os.path.join(RESULT_DIR, "hyper_params.json") # 超参数
 HYPER_PARAMS = dict()
 LOG_FILE = os.path.join(RESULT_DIR, "train.log")
 logger = FileLogger(LOG_FILE)
+
+
+if DATASET_NAME is None:
+    raise "Error, DATASET_NAME is None"
+
+logger.info("Train with dataset name %s" % DATASET_NAME)
+
 
 def get_resnet_dataloaders(model_weights, label2num, split_data_name):
     # resnet_weight.transforms()
@@ -104,6 +114,9 @@ def main():
     training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
     training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
     
+    # copy .env as params
+    shutil.copyfile(ENV_LOCAL_RC, os.path.join(RESULT_DIR, ".env"))
+
     '''
     Load weights
     '''
@@ -167,7 +180,7 @@ def main():
         "mode": "lines"
     })], is_show=True)
     # program hangs as https://community.plotly.com/t/plotly-write-image-doesnt-run/63972/3
-    # visual.save_figure2img(fig, os.path.join(RESULT_DIR, "loss_graph.jpg"))
+    visual.save_figure2jpg(fig, os.path.join(RESULT_DIR, "loss_graph.jpg"))
 
     # Create the figure for the chart
     fig = visual.go_figure(title="Accuracy over Epochs", xaxis_title="Epochs", yaxis_title="Accuracy", data=[dict({
@@ -179,7 +192,7 @@ def main():
         "numbers": dic_results["Validation_Accuracy"],
         "mode": "lines"
     })], is_show=True)
-    # visual.save_figure2img(fig, os.path.join(RESULT_DIR, "accuracy_graph.jpg"))
+    visual.save_figure2jpg(fig, os.path.join(RESULT_DIR, "accuracy_graph.jpg"))
 
     '''
     Save metrcis
@@ -199,8 +212,9 @@ def main():
     training_times.loc[len(training_times)] = row
     training_times.to_csv(os.path.join(RESULT_DIR, 'training_time.csv'), index=False)
 
-    torch.save(resnet_model_50, os.path.join(RESULT_DIR, 'model.pth'))
-
+    model_saved_path = os.path.join(RESULT_DIR, 'model.pth')
+    torch.save(resnet_model_50, model_saved_path)
+    logger.info("Saved model %s" % model_saved_path)
 
 if __name__ == '__main__':
     main()
