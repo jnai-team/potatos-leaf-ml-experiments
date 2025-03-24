@@ -126,10 +126,11 @@ def main():
     Load dataloader and class labels metadata
     '''
     split_data_name = "%s_pp_1" % DATASET_NAME
+    logger.info(">> Used dataset splitted data %s" % os.path.join(DATA_ROOT_DIR, split_data_name))
     label2num_file = os.path.join(DATA_ROOT_DIR, "%s.labels.label2num.json" % DATASET_NAME)
     if not os.path.exists(label2num_file):
         raise "Not exist %s" % label2num_file
-
+    
     label2num = None
     with open(label2num_file, "r") as fin:
         label2num = json.load(fin)

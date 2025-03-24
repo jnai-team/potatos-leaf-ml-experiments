@@ -37,6 +37,8 @@ import csv
 import json
 
 from pathlib import Path
+from sklearn.utils import shuffle
+
 # Get ENV
 from env import ENV
 from common.utils import console_log
@@ -64,11 +66,11 @@ def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_di
         train_num = math.floor(len(class_data) * DATA_TRAIN_RECORDS_RATIO)
         valid_num = len(class_data) - train_num
         console_log(">> train_num %d, valid_num %d" % (train_num, valid_num))
-        random.shuffle(class_data)
+        shuffled = shuffle(class_data)
         for x in range(train_num):
-            shutil.copy(os.path.join(DATA_ROOT_DIR, class_data[x]), train_img_dir)
+            shutil.copy(os.path.join(DATA_ROOT_DIR, shuffled[x]), train_img_dir)
         for x in range(valid_num):
-            shutil.copy(os.path.join(DATA_ROOT_DIR, class_data[train_num + x]), val_img_dir)
+            shutil.copy(os.path.join(DATA_ROOT_DIR, shuffled[train_num + x]), val_img_dir)
 
             
 def splitdata_1():
@@ -147,11 +149,12 @@ def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
     # Get all files in validate dir
     for _, _, images in os.walk(valid_dir):
         total_files = len(images)
+        shuffled = shuffle(images)
         console_log("%s has %s files" % (valid_dir, total_files))
         test_num = math.floor(total_files * ratio)
 
         for x in range(test_num):
-            shutil.move(os.path.join(valid_dir, images[x]), test_dir)
+            shutil.move(os.path.join(valid_dir, shuffled[x]), test_dir)
 
 def split_dataset(dataset_name):
     if not DATA_ROOT_DIR:
@@ -283,6 +286,10 @@ class Test(unittest.TestCase):
     def splitdata_sample4(self):
         print("splitdata_sample4")
         split_dataset("sample4")
+
+    def splitdata_sample7(self):
+        print("splitdata_sample7")
+        split_dataset("sample7")
 
     def splitdata_plantvillage(self):
         print("splitdata_plantvillage")
