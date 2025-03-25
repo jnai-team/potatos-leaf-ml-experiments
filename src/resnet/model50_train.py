@@ -42,8 +42,7 @@ import shutil
 from env import ENV, ENV_LOCAL_RC
 import trainer
 import visual
-from torchvision import transforms
-from image_dataset import model_dataloder
+from image_dataset import load_dev_data
 from common.utils import get_humanreadable_timestamp
 from common.logger import FileLogger
 
@@ -66,15 +65,11 @@ if DATASET_NAME is None:
 logger.info("Train with dataset name %s" % DATASET_NAME)
 
 
-def get_resnet_dataloaders(model_weights, label2num, split_data_name):
-    # resnet_weight.transforms()
-    from resnet.transforms import resnet_transform
-    resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = model_dataloder(weights=model_weights,
-                                                                                             transform=resnet_transform,
-                                                                                             label2num=label2num,
+def get_resnet_dataloaders(label2num, split_data_name):
+    resnet_train_dataloader, resnet_val_dataloader = load_dev_data(label2num=label2num,
                                                                                              split_data_name=split_data_name)
 
-    return resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader
+    return resnet_train_dataloader, resnet_val_dataloader
 
 
 def test_accuracy_resnet(model, dataloader, device):
@@ -111,7 +106,7 @@ def main():
 
     print("Save result into dir %s" % RESULT_DIR)
     print("Log file %s" % LOG_FILE)
-    training_times = pd.DataFrame(columns=['Model', 'Testing Accuracy', 'Training_Time(Minutes)'])
+    training_times = pd.DataFrame(columns=['Model', 'Training_Time(Minutes)'])
     training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
     
     # copy .env as params
@@ -137,7 +132,7 @@ def main():
 
 
     NUM_CLASSES = len(label2num.keys())
-    resnet_train_dataloader, resnet_val_dataloader, resnet_test_dataloader = get_resnet_dataloaders(resnet_weight_50, label2num, split_data_name)
+    resnet_train_dataloader, resnet_val_dataloader = get_resnet_dataloaders(label2num, split_data_name)
 
 
     '''
@@ -201,13 +196,12 @@ def main():
     resnet_results = pd.DataFrame(dic_results)
     resnet_results.to_csv(os.path.join(RESULT_DIR, 'train.csv'), index=False)
 
-    test_accuracy = test_accuracy_resnet(resnet_model_50, resnet_test_dataloader, trainer.device)
-    logger.info(f"Testing Accuracy is {test_accuracy}%")
+    # test_accuracy = test_accuracy_resnet(resnet_model_50, resnet_test_dataloader, trainer.device)
+    # logger.info(f"Testing Accuracy is {test_accuracy}%")
     logger.info(f'Model Training Time {round(training_time / 60, 4)} Minitues')
 
     training_times = pd.read_csv(os.path.join(RESULT_DIR, 'training_time.csv'))
-    row = {'Model': 'ResNet50', 'Testing Accuracy': test_accuracy,
-           'Training_Time(Minutes)': round(training_time / 60, 4)}
+    row = {'Model': 'ResNet50', 'Training_Time(Minutes)': round(training_time / 60, 4)}
 
     # Use the loc method to add the new row to the DataFrame
     training_times.loc[len(training_times)] = row

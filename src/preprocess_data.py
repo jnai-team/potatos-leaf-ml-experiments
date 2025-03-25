@@ -47,6 +47,7 @@ from common.utils import console_log
 ROOT_DIR = os.path.join(curdir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
 DATA_TRAIN_RECORDS_RATIO = float(ENV.str("DATA_TRAIN_RECORDS_RATIO", "0.9"))
+DATA_TEST_RECORDS_SPLIT = ENV.str("DATA_TEST_RECORDS_SPLIT", None)
 DATA_TEST_RECORDS_RATIO = float(ENV.str("DATA_TEST_RECORDS_RATIO", "0.1"))
 
 def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_dir):
@@ -71,70 +72,6 @@ def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_di
             shutil.copy(os.path.join(DATA_ROOT_DIR, shuffled[x]), train_img_dir)
         for x in range(valid_num):
             shutil.copy(os.path.join(DATA_ROOT_DIR, shuffled[train_num + x]), val_img_dir)
-
-            
-def splitdata_1():
-    if not DATA_ROOT_DIR:
-        print("DATA_ROOT_DIR not def in ENV")
-        raise "Env not found error."
-
-    console_log("Processing data in %s" % DATA_ROOT_DIR)
-
-    if not os.path.exists(DATA_ROOT_DIR):
-        console_log("DATA_ROOT_DIR not exist on filesystem %s" % DATA_ROOT_DIR)
-
-    console_log(">> handle data on %s" % DATA_ROOT_DIR)
-
-    CLASS_LABELS = os.path.join(DATA_ROOT_DIR, "train.csv")
-    SPLIITED_DATA = os.path.join(DATA_ROOT_DIR, "splitted_data_1")
-    SPLIITED_DATA_TRAIN = os.path.join(SPLIITED_DATA, "train")
-    SPLIITED_DATA_VAL = os.path.join(SPLIITED_DATA, "valid")
-    SPLIITED_DATA_TEST = os.path.join(SPLIITED_DATA, "test")
-
-    # 处理splitted_data_1
-    total_data = {}
-    total_images_counter = 0
-    class_labels = set()
-    missing_files = []
-
-    with open(CLASS_LABELS, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in reader:
-            if len(row) >= 2:
-                img_filename = row[0].strip()
-                img_label = row[1].strip()
-                class_labels.add(img_label)
-                image_file_abs = os.path.join(DATA_ROOT_DIR, img_filename)
-                if not os.path.exists(image_file_abs):
-                    console_log(f"[WARN] file not exist {image_file_abs}")
-                    missing_files.append(image_file_abs)
-                    continue
-                total_images_counter += 1
-                if img_label in total_data:
-                    total_data[img_label].append(img_filename)
-                else:
-                    total_data[img_label] = [img_filename]
-            else:
-                console_log(f"[WARN] Insufficient fields in row: {row}")
-
-    console_log(f"Get all labels {class_labels}")
-    console_log(f"Get images {total_images_counter}")
-
-    if os.path.exists(SPLIITED_DATA):
-        shutil.rmtree(SPLIITED_DATA)
-
-    os.mkdir(SPLIITED_DATA)
-    os.mkdir(SPLIITED_DATA_TRAIN)
-    os.mkdir(SPLIITED_DATA_VAL)
-    os.mkdir(SPLIITED_DATA_TEST)
-
-    for x in class_labels:
-        os.mkdir(os.path.join(SPLIITED_DATA_TRAIN, x))
-        os.mkdir(os.path.join(SPLIITED_DATA_VAL, x))
-
-    for x in class_labels:
-        move_images_to_train_and_valid(total_data, [x], os.path.join(SPLIITED_DATA_TRAIN, x), os.path.join(SPLIITED_DATA_VAL, x))
 
 
 def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
@@ -250,20 +187,21 @@ def split_dataset(dataset_name):
 
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-
     if os.path.exists(SPLIITED_DATA):
         shutil.rmtree(SPLIITED_DATA)
 
     os.mkdir(SPLIITED_DATA)
     os.mkdir(SPLIITED_DATA_TRAIN)
     os.mkdir(SPLIITED_DATA_VAL)
-    os.mkdir(SPLIITED_DATA_TEST)
 
     for x in class_labels:
         move_images_to_train_and_valid(total_data, [x], os.path.join(SPLIITED_DATA_TRAIN, x), os.path.join(SPLIITED_DATA_VAL, x))
 
-    for x in class_labels:
-        splitdata_from_validate_to_test(os.path.join(SPLIITED_DATA_VAL, x), os.path.join(SPLIITED_DATA_TEST, x), DATA_TEST_RECORDS_RATIO)
+    console_log("DATA_TEST_RECORDS_SPLIT is %s" % DATA_TEST_RECORDS_SPLIT)
+    if DATA_TEST_RECORDS_SPLIT == "true":
+        os.mkdir(SPLIITED_DATA_TEST)
+        for x in class_labels:
+            splitdata_from_validate_to_test(os.path.join(SPLIITED_DATA_VAL, x), os.path.join(SPLIITED_DATA_TEST, x), DATA_TEST_RECORDS_RATIO)
 
 ##########################################################################
 # Testcases
@@ -278,10 +216,6 @@ class Test(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_splitdata(self):
-        print("test_splitdata")
-        splitdata_1()
 
     def splitdata_sample4(self):
         print("splitdata_sample4")

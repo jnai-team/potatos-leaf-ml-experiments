@@ -29,13 +29,12 @@ else:
 
 import json
 import torch
-from PIL import Image
-import pathlib
 
 # Get ENV
 from env import ENV
 from common.logger import FileLogger
-from resnet.transforms import resnet_transform
+from transforms import read_image
+from image_dataset import load_test_data
 
 ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
@@ -43,8 +42,8 @@ DATASET_NAME = ENV.str("DATASET_NAME", None)
 MODEL_NAME = "resnet_model50"
 MODEL_ID = ENV.str("MODEL_ID", None)
 RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
-PREDICT_TARGETS_DIR = ENV.str("PREDICT_TARGETS_DIR", None)
-PREDICT_RESULT = os.path.join(RESULT_DIR, "predict_result.txt")
+PREDICT_TARGETS = ENV.str("PREDICT_TARGETS", None)
+PREDICT_RESULT = os.path.join(RESULT_DIR, "predict_result.csv")
 PREDICT_LOG = os.path.join(RESULT_DIR, "predict.log")
 
 logger = FileLogger(PREDICT_LOG)
@@ -53,35 +52,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 '''
 Parse predict data labels
 '''
-PREDICT_TARGETS_LABEL=None
-if "#" in PREDICT_TARGETS_DIR:
-    splits = PREDICT_TARGETS_DIR.split("#")
-    PREDICT_TARGETS_DIR = splits[0].rstrip()
-    PREDICT_TARGETS_LABEL = splits[1].rstrip()
-else:
-    PREDICT_TARGETS_LABEL=pathlib.PurePath(PREDICT_TARGETS_DIR).name
-
-'''
-Save png,jpg,jpeg images as predict targets in dir PREDICT_TARGETS_DIR
-'''
-if (not PREDICT_TARGETS_DIR) or (not os.path.exists(PREDICT_TARGETS_DIR)):
-    raise "Error %s not found" % PREDICT_TARGETS_DIR
+if PREDICT_TARGETS is None:
+    raise "ERROR, PREDICT_TARGETS should not be None."
 
 if not os.path.exists(RESULT_DIR):
     raise "Error, not found %s" % RESULT_DIR
 
-
-def read_image(image_path):
-    '''
-    Read image as input
-    '''
-    image = Image.open(image_path).convert('RGB')
-
-    if image.mode == "L":
-        image = Image.merge("RGB", (image, image, image))
-
-    image = resnet_transform(image)
-    return image
 
 def predict(model, image_path, num2label):
     '''
@@ -122,10 +98,6 @@ def main():
     if not os.path.exists(label2num_file):
         raise "Not exist %s" % label2num_file
 
-    label2num = None
-    with open(label2num_file, "r") as fin:
-        label2num = json.load(fin)
-
     num2label_file = os.path.join(DATA_ROOT_DIR, "%s.labels.num2label.json" % DATASET_NAME)
     if not os.path.exists(num2label_file):
         raise "Not exist %s" % num2label_file
@@ -135,31 +107,32 @@ def main():
         num2label = json.load(fin)
 
     '''
+    parse targets
+    '''
+    targets = load_test_data(PREDICT_TARGETS)
+
+    '''
     load all images as targets
     '''
+    corrected = 0
+    total = 0
     output_lines = ["image,actually,predicted\n"]
-    for _, _, images in os.walk(PREDICT_TARGETS_DIR):
-        total_files = len(images)
-        logger.info("%s has %s files" % (PREDICT_TARGETS_DIR, total_files))
-        corrected = 0
-        total = 0
+    for image_path in targets.keys():
+        predicted_label = predict(model, image_path, num2label)
+        actual_label = targets[image_path]
 
-        for x in images:
-            if x.endswith(".png") or x.endswith(".jpg"):
-                image_path = os.path.join(PREDICT_TARGETS_DIR, x)
-                label = predict(model, image_path, num2label)
-                output_lines.append("%s,%s,%s\n" % (image_path, PREDICT_TARGETS_LABEL, label))
+        if predicted_label == actual_label:
+            corrected += 1
 
-                if PREDICT_TARGETS_LABEL == label:
-                    corrected += 1
+        output_lines.append("%s,%s,%s\n" % (image_path, actual_label, predicted_label))
+        total += 1
 
-                total += 1
+    logger.info("Precision in predicting %s/%s" % (corrected, total))
 
     with open(PREDICT_RESULT, "w", encoding="utf-8") as fout:
         fout.writelines(output_lines)
 
-
-    logger.info("Precision %s/%s" % (corrected, total))
+    logger.info("Predict result for every image saved in %s" % PREDICT_RESULT)
 
 main()
 

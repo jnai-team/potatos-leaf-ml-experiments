@@ -30,12 +30,13 @@ else:
     unicode = str
 
 import os
+import pathlib
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from PIL import Image
 
 # Get ENV
 from env import ENV
+from transforms import read_image
 
 ROOT_DIR = os.path.join(curdir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
@@ -43,18 +44,16 @@ DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
 
 # Raw dataset
 class ImageDataset(Dataset):
-    def __init__(self, root_dir, transform=None, class_labels=None):
+    def __init__(self, root_dir, class_labels=None):
 
         """
         Initializes the ImageDataset object.
 
         Parameters:
             root_dir (str): The root directory path containing sub-directories, each representing a class.
-            transform (optional, callable): A callable function to transform the images (e.g., resizing, normalization).
         """
 
         self.root_dir = root_dir
-        self.transform = transform
         self.images = []
         self.labels = []
         # a mapping of class labels to integers: labels to num
@@ -100,32 +99,25 @@ class ImageDataset(Dataset):
             int: The label associated with the image.
         """
 
-        image = Image.open(self.images[idx]).convert('RGB')
+        image = read_image(self.images[idx])
         label = self.labels[idx]
-
-        if image.mode == "L":
-            image = Image.merge("RGB", (image, image, image))
-        if self.transform:
-            image = self.transform(image)
 
         return image, label
 
 
-# pytorch dataloader
-def model_dataloder(weights, transform, label2num, split_data_name="sample4_pp_1"):
+
+def load_dev_data(label2num, split_data_name="sample7_pp_1"):
     """
-    Returns three PyTorch DataLoaders for training, validation, and testing.
+    Returns three PyTorch DataLoaders for training, validation.
     
     Parameters:
-        weights (list): A list of weights used for data sampling in DataLoader (optional).
-        transform (torchvision.transforms): Image transformation to be applied to the datasets.
+        label2num: label to number data
+        split_data_name: dataset after splitted
         
     Returns:
         train_dataloader (DataLoader): DataLoader for the training dataset.
         val_dataloader (DataLoader): DataLoader for the validation dataset.
-        test_dataloader (DataLoader): DataLoader for the test dataset.
     """
-    weights = weights
     if DATA_ROOT_DIR is None:
         raise ValueError("DATA_ROOT_DIR environment variable is not set.")
     data_folder = os.path.join(DATA_ROOT_DIR, split_data_name)
@@ -133,8 +125,7 @@ def model_dataloder(weights, transform, label2num, split_data_name="sample4_pp_1
         raise FileNotFoundError(f"Data folder {data_folder} does not exist.")
     train_folder = os.path.join(data_folder, "train")
     val_folder = os.path.join(data_folder, "valid")
-    test_folder = os.path.join(data_folder, "test")
-    for folder in [train_folder, val_folder, test_folder]:
+    for folder in [train_folder, val_folder]:
         if not os.path.exists(folder):
             raise FileNotFoundError(f"Folder {folder} does not exist.")
         
@@ -142,23 +133,68 @@ def model_dataloder(weights, transform, label2num, split_data_name="sample4_pp_1
 
     train_folder = data_folder + "/train"
     val_folder = data_folder + "/valid"
-    test_folder = data_folder + "/test"
 
     # pytorch dataset
-    train_dataset = ImageDataset(train_folder, transform=transform, class_labels=label2num)
-    val_dataset = ImageDataset(val_folder, transform=transform, class_labels=label2num)
-    test_dataset = ImageDataset(test_folder, transform=transform, class_labels=label2num)
+    train_dataset = ImageDataset(train_folder, class_labels=label2num)
+    val_dataset = ImageDataset(val_folder, class_labels=label2num)
 
     if len(train_dataset) == 0:
         raise ValueError("Training dataset is empty. Check data source and path.")
     if len(val_dataset) == 0:
         raise ValueError("Validation dataset is empty. Check data source and path.")
-    if len(test_dataset) == 0:
-        raise ValueError("Testing dataset is empty. Check data source and path.")
 
     # pytorch dataloader
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False)
-    test_dataloader = DataLoader(dataset=test_dataset, batch_size=32, shuffle=False)
     
-    return train_dataloader, val_dataloader, test_dataloader
+    return train_dataloader, val_dataloader
+
+
+def parse_image_targets(env_val):
+    '''
+    Parse targets as label and images' dir
+    params:
+        * env_val: string as `folder1#label1,folder2#label2,...`
+    '''
+    targets = dict()
+    splits = env_val.split(",")
+    for sp in splits:
+        label=None
+        sp = sp.rstrip()
+        if "#" in sp:
+            parts = sp.split("#")
+            targets_dir = parts[0].rstrip()
+            if not os.path.exists(targets_dir):
+                print("Predict targets dir not exist: %s" % targets_dir)
+                raise BaseException("Folder not found")
+            
+            label = parts[1].rstrip()
+            targets[targets_dir] = label
+        else:
+            if not os.path.exists(sp):
+                print("Predict targets dir not exist: %s" % targets_dir)
+                raise BaseException("Folder not found")
+            
+            label=pathlib.PurePath(sp).name
+            targets[sp] = label
+
+    return targets
+
+def load_test_data(targets_env_val):
+    '''
+    Load dataset for testing
+    Return: 
+        * images: dict[image path] = fact label
+    '''
+    targets = parse_image_targets(targets_env_val)
+    data = dict()
+
+    for target_folder in targets.keys():
+        for _, _, files in os.walk(target_folder):
+            for x in files:
+                # only check png, jpg, jpeg.
+                if x.endswith(".png") or x.endswith(".jpg") or x.endswith(".jpeg"):
+                    image_path = os.path.join(target_folder, x)
+                    data[image_path] = targets[target_folder]
+
+    return data
