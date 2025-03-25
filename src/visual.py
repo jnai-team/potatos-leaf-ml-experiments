@@ -27,7 +27,10 @@ if sys.version_info[0] < 3:
 else:
     unicode = str
 
-
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html
+from sklearn.metrics import accuracy_score, f1_score, recall_score
 import plotly.graph_objects as go
 
 # Get ENV

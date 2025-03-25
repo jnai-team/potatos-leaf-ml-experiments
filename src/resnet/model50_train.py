@@ -31,7 +31,6 @@ sys.path.insert(0, os.path.join(curdir, os.pardir))
 
 import json
 import torch
-from sklearn.metrics import accuracy_score
 import torchvision
 from torchinfo import summary
 import pandas as pd
@@ -72,32 +71,32 @@ def get_resnet_dataloaders(label2num, split_data_name):
     return resnet_train_dataloader, resnet_val_dataloader
 
 
-def test_accuracy_resnet(model, dataloader, device):
-    # empty list store labels
-    predict_label_list = []
-    actual_label_list = []
+# def test_accuracy_resnet(model, dataloader, device):
+#     # empty list store labels
+#     predict_label_list = []
+#     actual_label_list = []
 
-    # eval mode
-    model.eval()
+#     # eval mode
+#     model.eval()
 
-    for images, labels in dataloader:
-        for label in labels:
-            label = label.item()
-            actual_label_list.append(label)
+#     for images, labels in dataloader:
+#         for label in labels:
+#             label = label.item()
+#             actual_label_list.append(label)
 
-        for image in images:
-            with torch.inference_mode():
-                image = image.to(device)
-                # add batch_size and device
-                image = image.unsqueeze(dim=0)
-                # logits
-                logits = model(image)
-                # lables
-                label = torch.argmax(logits).item()
-                predict_label_list.append(label)
+#         for image in images:
+#             with torch.inference_mode():
+#                 image = image.to(device)
+#                 # add batch_size and device
+#                 image = image.unsqueeze(dim=0)
+#                 # logits
+#                 logits = model(image)
+#                 # lables
+#                 label = torch.argmax(logits).item()
+#                 predict_label_list.append(label)
 
-    accuracy = accuracy_score(actual_label_list, predict_label_list)
-    return accuracy * 100
+#     accuracy = visual.accuracy_score(actual_label_list, predict_label_list)
+#     return accuracy * 100
 
 
 def main():

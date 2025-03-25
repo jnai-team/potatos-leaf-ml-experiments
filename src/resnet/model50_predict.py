@@ -35,6 +35,7 @@ from env import ENV
 from common.logger import FileLogger
 from transforms import read_image
 from image_dataset import load_test_data
+import visual
 
 ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
 DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
@@ -114,20 +115,24 @@ def main():
     '''
     load all images as targets
     '''
-    corrected = 0
-    total = 0
     output_lines = ["image,actually,predicted\n"]
+    predicted_labels = []
+    actual_labels = []
     for image_path in targets.keys():
         predicted_label = predict(model, image_path, num2label)
         actual_label = targets[image_path]
 
-        if predicted_label == actual_label:
-            corrected += 1
+        predicted_labels.append(predicted_label)
+        actual_labels.append(actual_label)
 
         output_lines.append("%s,%s,%s\n" % (image_path, actual_label, predicted_label))
-        total += 1
 
-    logger.info("Precision in predicting %s/%s" % (corrected, total))
+    accuracy_score = visual.accuracy_score(actual_labels, predicted_labels)
+    f1_score = visual.f1_score(actual_labels, predicted_labels, average='micro')
+    recall_score = visual.recall_score(actual_labels, predicted_labels, average='micro')
+    logger.info("Precision in predicting %s total %s" % (("%.2f" % (accuracy_score * 100)) + "%", len(actual_labels)))
+    logger.info("F1 Score in predicting %s" % f1_score)
+    logger.info("Recall Score in predicting %s" % recall_score)
 
     with open(PREDICT_RESULT, "w", encoding="utf-8") as fout:
         fout.writelines(output_lines)
@@ -135,4 +140,3 @@ def main():
     logger.info("Predict result for every image saved in %s" % PREDICT_RESULT)
 
 main()
-
