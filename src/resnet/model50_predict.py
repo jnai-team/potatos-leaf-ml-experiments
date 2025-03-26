@@ -134,6 +134,9 @@ def main():
     logger.info("F1 Score in predicting %s" % f1_score)
     logger.info("Recall Score in predicting %s" % recall_score)
 
+    # TODO plot ROC Cure
+    # https://stackoverflow.com/questions/25009284/how-to-plot-roc-curve-in-python
+
     with open(PREDICT_RESULT, "w", encoding="utf-8") as fout:
         fout.writelines(output_lines)
 
