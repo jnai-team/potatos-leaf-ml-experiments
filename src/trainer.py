@@ -40,33 +40,9 @@ ENVIRON = os.environ.copy()
 # Device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 # hardcode :
 # loss_fn -> CrossEntropyLoss
 # optimizer -> Adam(lr = 0.0005)
-
-def add_custom_layers(model, last_layer_num):
-    for param in model.parameters():
-        param.requires_grad = False
-
-    num_features = model.fc.in_features
-
-    # Define your custom layers (you can modify this part as per your requirements)
-    custom_layers = nn.Sequential(
-        nn.Linear(num_features, 1024),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(1024, 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, last_layer_num)  # Assuming you have defined num_classes for your specific task
-    )
-
-    # Replace the last layer of the ResNet-50 model with the custom layers
-    model.fc = custom_layers
-
-    return model
-
 
 # Train -> train_loss, train_acc
 def train(model, dataloader, loss_fn, optimizer, device):

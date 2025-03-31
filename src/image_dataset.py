@@ -198,3 +198,11 @@ def load_test_data(targets_env_val):
                     data[image_path] = targets[target_folder]
 
     return data
+
+def get_1st_tensor(dataloader):
+    '''
+    Get first tensor as input sample
+    '''
+
+    inputs, classes = next(iter(dataloader))
+    return inputs[0]

@@ -19,6 +19,11 @@ torchsummary
 torchvision
 tzdata
 watchdog
+onnx==1.17
+onnxruntime==1.21
+onnxscript==0.2
+torchview
+graphviz
 # stick with old version to fix figure.write_image failure.
 # https://github.com/plotly/Kaleido/issues/134
 kaleido==0.1.0.post1
