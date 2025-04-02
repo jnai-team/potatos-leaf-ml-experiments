@@ -18,11 +18,28 @@ export DATE_WITH_TIME=`date "+%Y%m%d-%H%M%S"` #add %3N as we want millisecond to
 [ -z "${BASH_SOURCE[0]}" -o "${BASH_SOURCE[0]}" = "$0" ] || return
 cd $baseDir/..
 
+if [ ! -f .env ]; then
+    echo `pwd`"/.env file not found"
+    exit 1
+fi
+
+source .env
+
+if [ -z ${MODEL_PREDICT_SCRIPT+x} ]; then echo "ERROR, MODEL_PREDICT_SCRIPT is not defined"; exit 2; else echo "MODEL_PREDICT_SCRIPT is set to '$MODEL_PREDICT_SCRIPT'"; fi
+
+if [ -z ${MODEL_PREDICT_SCRIPT} ]; then echo "ERROR, MODEL_PREDICT_SCRIPT is not defined"; exit 2; fi
+
 if [ ! -d tmp ]; then
     mkdir tmp
 fi
 
 cd $baseDir/../src
-echo ">> Training is started"
-python resnet/model50_train.py
+
+if [ ! -f $MODEL_PREDICT_SCRIPT ]; then
+    echo "$MODEL_PREDICT_SCRIPT not found"
+    exit 3
+fi
+
+echo ">> Predicting is started"
+python $MODEL_PREDICT_SCRIPT
 echo "<< DONE"
