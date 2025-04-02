@@ -54,10 +54,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 Parse predict data labels
 '''
 if PREDICT_TARGETS is None:
-    raise "ERROR, PREDICT_TARGETS should not be None."
+    raise BaseException("ERROR, PREDICT_TARGETS should not be None.")
 
 if not os.path.exists(RESULT_DIR):
-    raise "Error, not found %s" % RESULT_DIR
+    raise BaseException("Error, not found %s" % RESULT_DIR)
 
 
 def predict(model, image_path, num2label):
@@ -88,6 +88,7 @@ def main():
     Run predict logic
     '''
     # load model
+    logger.info("Predict with model %s" % RESULT_DIR)
     model = torch.load(os.path.join(RESULT_DIR, "model.pth"), weights_only=False)
     model.to(device)
     model.eval()
@@ -127,9 +128,13 @@ def main():
 
         output_lines.append("%s,%s,%s\n" % (image_path, actual_label, predicted_label))
 
+
+    # With average='micro', the three values would be the same, for multi classes, the average should be set as macro 
+    # https://stackoverflow.com/questions/71799168/can-the-f1-precision-accuracy-and-recall-all-have-the-same-values
+    # https://blog.csdn.net/qq_45041871/article/details/128385945
     accuracy_score = visual.accuracy_score(actual_labels, predicted_labels)
-    f1_score = visual.f1_score(actual_labels, predicted_labels, average='micro')
-    recall_score = visual.recall_score(actual_labels, predicted_labels, average='micro')
+    f1_score = visual.f1_score(actual_labels, predicted_labels, average='macro')
+    recall_score = visual.recall_score(actual_labels, predicted_labels, average='macro')
     logger.info("Precision in predicting %s total %s" % (("%.2f" % (accuracy_score * 100)) + "%", len(actual_labels)))
     logger.info("F1 Score in predicting %s" % f1_score)
     logger.info("Recall Score in predicting %s" % recall_score)
