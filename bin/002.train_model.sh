@@ -43,8 +43,10 @@ fi
 cd $baseDir/..
 $baseDir/commit.sh
 GIT_COMMIT_SHORT=`git rev-parse --short=9 HEAD`
-echo "\n#AUTO GENERATED\n" >> .env
-echo "GIT_COMMIT_SHORT=$GIT_COMMIT_SHORT\n" >> .env
+echo "" >> .env
+echo "#AUTO GENERATED" >> .env
+echo "GIT_COMMIT_SHORT=$GIT_COMMIT_SHORT" >> .env
+echo "" >> .env
 
 # start train
 cd $baseDir/../src
