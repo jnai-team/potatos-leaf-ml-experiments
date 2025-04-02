@@ -26,6 +26,8 @@ cd potatos-leaf-ml-experiments
 ./bin/000.install_deps.sh   # 在 Git Bash 中执行
 ```
 
+# Data
+
 ## Download data
 
 下载数据集 Sample7 到根目录 `DATA_ROOT_DIR`（DATA_ROOT_DIR 是自定义的路径）：
@@ -46,7 +48,7 @@ git clone https://github.com/jnai-team/potato-diseases-dataset.git sample7
 复制配置文件。
 
 ```
-cd $DATA_ROOT_DIR/sample7
+cd $ROOT_DIR
 cp sample.env .env
 ```
 
@@ -75,11 +77,22 @@ After that, a new folder is generated at
 $DATA_ROOT_DIR/sample7_pp_1 ## pp_1 means pre-process phase 1
 ```
 
+# Train and predict
+
+Config model trainer in `.env`, by default they are 
+
+```
+MODEL_TRAIN_SCRIPT=resnet/model50_train.py
+MODEL_PREDICT_SCRIPT=resnet/model50_predict.py
+```
+
+Scripts are all placed under `src`.
+
 ## Train model
 
 Run script to train model.
 ```
-bin/002.train_resnet_model50.sh
+bin/002.train_model.sh
 ```
 
 After the training, model files are saved into a dir in `DATA_ROOT_DIR`, e.g.
@@ -106,7 +119,7 @@ PREDICT_TARGETS=FolderA#LabelA,FolderB#LabelB[...]
 After setting `PREDICT_TARGETS` in `.env`, run the following script to get predict result -
 
 ```
-bin/003.predict_resnet_model50.sh
+bin/003.predict_images.sh
 ```
 
 Check out the console log for predict details.
