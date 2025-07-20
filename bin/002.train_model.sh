@@ -50,9 +50,9 @@ echo "GIT_COMMIT_SHORT=$GIT_COMMIT_SHORT" >> .env
 
 # start train
 cd $baseDir/../src
-# echo ">> Training is started"
-# python $MODEL_TRAIN_SCRIPT
-# echo "<< DONE"
+echo ">> Training is started"
+python $MODEL_TRAIN_SCRIPT
+echo "<< DONE"
 
 cd $baseDir/..
 git push origin master
