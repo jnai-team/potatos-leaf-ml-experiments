@@ -36,10 +36,6 @@ import plotly.graph_objects as go
 import torch
 from torchview import draw_graph
 
-# Get ENV
-from env import ENV
-
-
 def go_figure(title, xaxis_title, yaxis_title, data, is_show=True,
               legend_x=0.05, legend_y=1.1, width=800, height=400):
     '''
