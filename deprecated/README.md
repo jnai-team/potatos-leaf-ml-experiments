@@ -27,28 +27,63 @@ git clone git@gitee.com:jnai/potatos-leaf-ml-experiments.git
 ```bash
 # 在 Git Bash 中执行
 cd $ROOT_DIR/potatos-leaf-ml-experiments # 进入刚刚下载好的代码地址
-./bin/001.install_deps.sh   # 安装 Python 依赖
+./bin/000.install_deps.sh   # 安装 Python 依赖
 ```
 
 # Data
 
 ## Download data
 
-下载数据集到目录 `$ROOT_DIR/data`：
+下载数据集 Sample7 到根目录 `DATA_ROOT_DIR`（DATA_ROOT_DIR 是自定义的路径）：
 
 ```
-cd $ROOT_DIR
-git clone git@gitee.com:jnai/potato-diseases-dataset.git data
+cd $DATA_ROOT_DIR
+git clone git@gitee.com:jnai/potato-diseases-dataset.git
 ```
 
 所以，数据集的路径就是：
-* Development Data - $ROOT_DIR/data/train
-* Test data - $ROOT_DIR/data/test
+* Development Data - $DATA_ROOT_DIR/potato-diseases-dataset/train
+* Test data - $DATA_ROOT_DIR/potato-diseases-dataset/test
 
+## Pre-process image data for development
+
+数据预处理，因为现在都是做图片分类。用哪个数据集，数据集位置，超参数等，使用配置文件 `.env` 进行配置，示例 sample.env
+
+复制配置文件。
+
+```
+cd $ROOT_DIR
+cp sample.env .env
+```
+
+然后使用 VSCode 或 Notepad 打开 .env 文件，编辑文件，设置：`DATA_ROOT_DIR` 和 `DATASET_NAME`，比如：
+
+```
+DATA_ROOT_DIR=D:\packages\potato-datasets
+DATASET_NAME=potato-diseases-dataset
+DATA_TRAIN_RECORDS_RATIO=0.9
+```
+
+那么，程序就会认为：
+
+* Development Data - D:\packages\potato-datasets\potato-diseases-dataset\train
+* Test Data - D:\packages\potato-datasets\potato-diseases-dataset\test
+
+Run script to split data.
+
+```
+./bin/001.preprocess_data_sample7.sh
+```
+
+After that, a new folder is generated at
+
+```
+$DATA_ROOT_DIR/sample7_pp_1 ## pp_1 means pre-process phase 1
+```
 
 # Train and predict
 
-Copy `sample.env` to `.env`, config model trainer in `.env`, by default they are 
+Config model trainer in `.env`, by default they are 
 
 ```
 MODEL_TRAIN_SCRIPT=resnet/model50_train.py

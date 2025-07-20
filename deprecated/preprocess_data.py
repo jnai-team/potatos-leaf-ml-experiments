@@ -32,7 +32,6 @@ else:
 
 import shutil
 import math
-import random
 import csv
 import json
 
@@ -40,15 +39,17 @@ from pathlib import Path
 from sklearn.utils import shuffle
 
 # Get ENV
-from env import ENV
-from common.utils import console_log
+from env3 import load_env
+from log5 import LN, get_logger
 
+ENV = load_env(dotenv_file=os.path.join(curdir, os.pardir, ".env"))
+logger = get_logger(LN(__name__))
 
 ROOT_DIR = os.path.join(curdir, os.pardir)
-DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
-DATA_TRAIN_RECORDS_RATIO = float(ENV.str("DATA_TRAIN_RECORDS_RATIO", "0.9"))
-DATA_TEST_RECORDS_SPLIT = ENV.str("DATA_TEST_RECORDS_SPLIT", None)
-DATA_TEST_RECORDS_RATIO = float(ENV.str("DATA_TEST_RECORDS_RATIO", "0.1"))
+DATA_ROOT_DIR = ENV.get("DATA_ROOT_DIR", None)
+DATA_TRAIN_RECORDS_RATIO = float(ENV.get("DATA_TRAIN_RECORDS_RATIO", "0.9"))
+DATA_TEST_RECORDS_SPLIT = ENV.get("DATA_TEST_RECORDS_SPLIT", "false")
+DATA_TEST_RECORDS_RATIO = float(ENV.get("DATA_TEST_RECORDS_RATIO", "0.1"))
 
 def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_dir):
     '''
@@ -63,10 +64,10 @@ def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_di
 
     for label in labels:
         class_data = total_data[label]
-        console_log(">> Get records %d for label %s" % (len(class_data), label))
+        logger.info(">> Get records %d for label %s" % (len(class_data), label))
         train_num = math.floor(len(class_data) * DATA_TRAIN_RECORDS_RATIO)
         valid_num = len(class_data) - train_num
-        console_log(">> train_num %d, valid_num %d" % (train_num, valid_num))
+        logger.info(">> train_num %d, valid_num %d" % (train_num, valid_num))
         shuffled = shuffle(class_data)
         for x in range(train_num):
             shutil.copy(os.path.join(DATA_ROOT_DIR, shuffled[x]), train_img_dir)
@@ -78,7 +79,7 @@ def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
     '''
     Make a subset of test images from validate images
     '''
-    console_log("splitdata_from_validate_to_test %s --> %s: %s" % (valid_dir, test_dir, ratio))
+    logger.info("splitdata_from_validate_to_test %s --> %s: %s" % (valid_dir, test_dir, ratio))
 
     if not os.path.exists(test_dir):
         os.mkdir(test_dir)
@@ -87,7 +88,7 @@ def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
     for _, _, images in os.walk(valid_dir):
         total_files = len(images)
         shuffled = shuffle(images)
-        console_log("%s has %s files" % (valid_dir, total_files))
+        logger.info("%s has %s files" % (valid_dir, total_files))
         test_num = math.floor(total_files * ratio)
 
         for x in range(test_num):
@@ -98,17 +99,17 @@ def split_dataset(dataset_name):
         print("DATA_ROOT_DIR not def in ENV")
         raise "Env not found error."
 
-    console_log("Processing data in %s" % DATA_ROOT_DIR)
+    logger.info("Processing data in %s" % DATA_ROOT_DIR)
 
     if not os.path.exists(DATA_ROOT_DIR):
-        console_log("DATA_ROOT_DIR not exist on filesystem %s" % DATA_ROOT_DIR)
+        logger.info("DATA_ROOT_DIR not exist on filesystem %s" % DATA_ROOT_DIR)
 
-    console_log(">> handle data on %s" % DATA_ROOT_DIR)
+    logger.info(">> handle data on %s" % DATA_ROOT_DIR)
     
     DATASET_NAME = dataset_name
     DATASET_DIR = os.path.join(DATA_ROOT_DIR, DATASET_NAME)
     if not os.path.exists(DATASET_DIR):
-        console_log("DATASET_DIR not exist on filesystem %s" % DATASET_DIR)
+        logger.info("DATASET_DIR not exist on filesystem %s" % DATASET_DIR)
 
     # generate class labels csv file
     label_class_csv = os.path.join(DATA_ROOT_DIR, "%s.labels.autogen.csv" % DATASET_NAME)
@@ -116,15 +117,20 @@ def split_dataset(dataset_name):
     with open(label_class_csv, "w") as fout:
         fout.writelines(["filepath,label\n"])
 
-    DATA_SAMPLE4_PATH = Path(DATASET_DIR)
     # https://docs.python.org/3/library/pathlib.html#general-properties
-    subclassfolder = [f.parts[-1] for f in DATA_SAMPLE4_PATH.iterdir() if f.is_dir()]
+    # DATA_PATH_OBJ = Path(DATASET_DIR)
+    # subclassfolder = [f.parts[-1] for f in DATA_PATH_OBJ.iterdir() if f.is_dir()]
+    subclassfolder = ["train"]
     
     output_lines = []
     for x in subclassfolder:
         target_images_folder = os.path.join(DATASET_DIR, x)
-        for _, _, images in os.walk(target_images_folder):
+        for root, dirs, images in os.walk(target_images_folder):
+            print("root", root)
+            print("dirs", dirs)
             for y in images:
+                print("y", y)
+                sys.exit()
                 output_lines.append("%s/%s/%s,%s\n" % (DATASET_NAME, x,y,x))
 
     with open(label_class_csv, "a") as fout:
@@ -152,7 +158,7 @@ def split_dataset(dataset_name):
                 class_labels.add(img_label)
                 image_file_abs = os.path.join(DATA_ROOT_DIR, img_filename)
                 if not os.path.exists(image_file_abs):
-                    console_log(f"[WARN] file not exist {image_file_abs}")
+                    logger.info(f"[WARN] file not exist {image_file_abs}")
                     missing_files.append(image_file_abs)
                     continue
                 total_images_counter += 1
@@ -161,10 +167,10 @@ def split_dataset(dataset_name):
                 else:
                     total_data[img_label] = [image_file_abs]
             else:
-                console_log(f"[WARN] Insufficient fields in row: {row}")
+                logger.info(f"[WARN] Insufficient fields in row: {row}")
 
-    console_log(f"Get all labels {class_labels}")
-    console_log(f"Get images {total_images_counter}")
+    logger.info(f"Get all labels {class_labels}")
+    logger.info(f"Get images {total_images_counter}")
 
     #####################
     # Dump lables metadata
@@ -197,11 +203,15 @@ def split_dataset(dataset_name):
     for x in class_labels:
         move_images_to_train_and_valid(total_data, [x], os.path.join(SPLIITED_DATA_TRAIN, x), os.path.join(SPLIITED_DATA_VAL, x))
 
-    console_log("DATA_TEST_RECORDS_SPLIT is %s" % DATA_TEST_RECORDS_SPLIT)
+    logger.info("DATA_TEST_RECORDS_SPLIT is %s" % DATA_TEST_RECORDS_SPLIT)
     if DATA_TEST_RECORDS_SPLIT == "true":
         os.mkdir(SPLIITED_DATA_TEST)
         for x in class_labels:
             splitdata_from_validate_to_test(os.path.join(SPLIITED_DATA_VAL, x), os.path.join(SPLIITED_DATA_TEST, x), DATA_TEST_RECORDS_RATIO)
+    elif os.path.exists(os.path.join(DATASET_DIR, "test")):
+        if os.path.exists(SPLIITED_DATA_TEST): os.removedirs(os.mkdir(SPLIITED_DATA_TEST))
+        shutil.copytree(os.path.join(DATASET_DIR, "test"), SPLIITED_DATA_TEST)
+
 
 ##########################################################################
 # Testcases
@@ -216,6 +226,20 @@ class Test(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_splitdata(self):
+        print("test_splitdata")
+        dataset_name = ENV.get("DATASET_NAME", None)
+
+        if not dataset_name:
+            raise BaseException("ENV DATASET_NAME not exist")
+        
+        dataset_path = os.path.join(DATA_ROOT_DIR, dataset_name)
+
+        if not os.path.exists(dataset_path):
+            raise BaseException(f"${dataset_path} not found")
+
+        split_dataset(dataset_name)
 
     def splitdata_sample4(self):
         print("splitdata_sample4")
