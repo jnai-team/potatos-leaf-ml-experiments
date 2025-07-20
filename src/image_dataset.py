@@ -114,7 +114,7 @@ def load_dev_data(label2num, data_root_dir):
         raise ValueError("data_root_dir variable is not set.")
     if not os.path.exists(data_root_dir):
         raise FileNotFoundError(f"Data folder {data_root_dir} does not exist.")
-    
+
     train_folder = os.path.join(data_root_dir, "train")
     test_folder = os.path.join(data_root_dir, "test")
     for folder in [train_folder, test_folder]:
@@ -127,7 +127,7 @@ def load_dev_data(label2num, data_root_dir):
 
     if len(train_dataset) == 0:
         raise ValueError("Training dataset is empty. Check data source and path.")
-    
+
     if len(test_dataset) == 0:
         raise ValueError("Test dataset is empty. Check data source and path.")
 

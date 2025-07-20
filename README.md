@@ -76,16 +76,19 @@ First, edit `.env` file again, add following info.
 
 ```
 MODEL_ID=2025_03_24_170324
-PREDICT_TARGETS=C:\experiments\data\potato-datasets\potato-diseases-dataset\test\Potato___Early_blight,C:\experiments\data\potato-datasets\potato-diseases-dataset\test\Potato___healthy,C:\experiments\data\potato-datasets\potato-diseases-dataset\test\Potato___Late_blight
-```
-
-`PREDICT_TARGETS` stores folders concatenating with comma, each folder contains images, and the images are assumed labeled as their folder name, another sytanx of `PREDICT_TARGETS` is also supported -
+PREDICT_TARGETS_DIR=C:\Users\Administrator\backups\obsidian\zettelkasten\projects\2025_03_01_zhangphd_paper\experiments\data\test\Potato___Early_blight,C:\Users\Administrator\backups\obsidian\zettelkasten\projects\2025_03_01_zhangphd_paper\experiments\data\test\Potato___healthy,C:\Users\Administrator\backups\obsidian\zettelkasten\projects\2025_03_01_zhangphd_paper\experiments\data\test\Potato___Late_blight
 
 ```
-PREDICT_TARGETS=FolderA#LabelA,FolderB#LabelB[...]
+
+Replace `C:\Users\Administrator\backups\obsidian\zettelkasten\projects\2025_03_01_zhangphd_paper\experiments` with your `ROOT_DIR` path, more explanation - 
+
+`PREDICT_TARGETS_DIR` stores folders concatenating with comma, each folder contains images, and the images are assumed labeled as their folder name, another sytanx of `PREDICT_TARGETS_DIR` is also supported -
+
+```
+PREDICT_TARGETS_DIR=FolderA#LabelA,FolderB#LabelB[...]
 ```
 
-After setting `PREDICT_TARGETS` in `.env`, run the following script to get predict result -
+After setting `PREDICT_TARGETS_DIR` in `.env`, run the following script to get predict result -
 
 ```
 bin/003.predict_images.sh
@@ -101,7 +104,7 @@ Check out the console log for predict details.
 * format code
 
 ```
-./bin/fmt_py.sh
+./bin/fmt_code_py.sh
 ```
 
 # Licesne
