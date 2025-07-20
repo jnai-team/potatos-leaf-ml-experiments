@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#===============================================================================
+# ===============================================================================
 #
 # Copyright (c) 2025 <> All Rights Reserved
 #
@@ -9,16 +9,17 @@
 # Author: Hai Liang Wang
 # Date: 2025-03-22:16:56:58
 #
-#===============================================================================
+# ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
 __date__ = "2025-03-22:16:56:58"
 
-import os, sys
+import os
+import sys
 curdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(curdir, os.pardir))
 
@@ -65,7 +66,7 @@ def predict(model, image_path, num2label):
     Predict image
     '''
     logger.info("predict image: %s" % image_path)
-    
+
     image = read_image(image_path=image_path)
     label = None
 
@@ -79,7 +80,7 @@ def predict(model, image_path, num2label):
         label = num2label[str(num)]
         logger.info("%s label --> %s" % (image_path, label))
         return label
-    
+
     return label
 
 
@@ -128,14 +129,14 @@ def main():
 
         output_lines.append("%s,%s,%s\n" % (image_path, actual_label, predicted_label))
 
-
-    # With average='micro', the three values would be the same, for multi classes, the average should be set as macro 
+    # With average='micro', the three values would be the same, for multi classes, the average should be set as macro
     # https://stackoverflow.com/questions/71799168/can-the-f1-precision-accuracy-and-recall-all-have-the-same-values
     # https://blog.csdn.net/qq_45041871/article/details/128385945
     accuracy_score = visual.accuracy_score(actual_labels, predicted_labels)
     f1_score = visual.f1_score(actual_labels, predicted_labels, average='macro')
     recall_score = visual.recall_score(actual_labels, predicted_labels, average='macro')
-    logger.info("Precision in predicting %s total %s" % (("%.2f" % (accuracy_score * 100)) + "%", len(actual_labels)))
+    logger.info("Precision in predicting %s total %s" %
+                (("%.2f" % (accuracy_score * 100)) + "%", len(actual_labels)))
     logger.info("F1 Score in predicting %s" % f1_score)
     logger.info("Recall Score in predicting %s" % recall_score)
 
@@ -146,5 +147,6 @@ def main():
         fout.writelines(output_lines)
 
     logger.info("Predict result for every image saved in %s" % PREDICT_RESULT)
+
 
 main()

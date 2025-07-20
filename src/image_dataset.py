@@ -12,7 +12,7 @@
 # ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
@@ -33,19 +33,12 @@ import os
 import pathlib
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-
-# Get ENV
-from env import ENV
 from transforms import read_image
-
-ROOT_DIR = os.path.join(curdir, os.pardir)
-DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
 
 
 # Raw dataset
 class ImageDataset(Dataset):
     def __init__(self, root_dir, class_labels=None):
-
         """
         Initializes the ImageDataset object.
 
@@ -59,7 +52,7 @@ class ImageDataset(Dataset):
         # a mapping of class labels to integers: labels to num
         self.class_labels = class_labels
 
-        if self.class_labels == None:
+        if self.class_labels is None:
             raise "Invalid class_labels data, should not be None"
 
         # Iterate over sub-directories
@@ -74,9 +67,10 @@ class ImageDataset(Dataset):
                         if class_dir in self.class_labels:
                             self.labels.append(self.class_labels[class_dir])
                         else:
-                            raise "%s not found in class_labels %s" % (class_dir, self.class_labels)
-    def __len__(self):
+                            raise "%s not found in class_labels %s" % (
+                                class_dir, self.class_labels)
 
+    def __len__(self):
         """
         Returns the total number of samples in the dataset.
 
@@ -87,7 +81,6 @@ class ImageDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-
         """
         Retrieves a sample from the dataset.
 
@@ -105,49 +98,44 @@ class ImageDataset(Dataset):
         return image, label
 
 
-
-def load_dev_data(label2num, split_data_name="sample7_pp_1"):
+def load_dev_data(label2num, data_root_dir):
     """
     Returns three PyTorch DataLoaders for training, validation.
-    
+
     Parameters:
         label2num: label to number data
         split_data_name: dataset after splitted
-        
+
     Returns:
         train_dataloader (DataLoader): DataLoader for the training dataset.
         val_dataloader (DataLoader): DataLoader for the validation dataset.
     """
-    if DATA_ROOT_DIR is None:
-        raise ValueError("DATA_ROOT_DIR environment variable is not set.")
-    data_folder = os.path.join(DATA_ROOT_DIR, split_data_name)
-    if not os.path.exists(data_folder):
-        raise FileNotFoundError(f"Data folder {data_folder} does not exist.")
-    train_folder = os.path.join(data_folder, "train")
-    val_folder = os.path.join(data_folder, "valid")
-    for folder in [train_folder, val_folder]:
+    if data_root_dir is None:
+        raise ValueError("data_root_dir variable is not set.")
+    if not os.path.exists(data_root_dir):
+        raise FileNotFoundError(f"Data folder {data_root_dir} does not exist.")
+    
+    train_folder = os.path.join(data_root_dir, "train")
+    test_folder = os.path.join(data_root_dir, "test")
+    for folder in [train_folder, test_folder]:
         if not os.path.exists(folder):
             raise FileNotFoundError(f"Folder {folder} does not exist.")
-        
-    data_folder = os.path.join(DATA_ROOT_DIR, split_data_name)
-
-    train_folder = data_folder + "/train"
-    val_folder = data_folder + "/valid"
 
     # pytorch dataset
     train_dataset = ImageDataset(train_folder, class_labels=label2num)
-    val_dataset = ImageDataset(val_folder, class_labels=label2num)
+    test_dataset = ImageDataset(test_folder, class_labels=label2num)
 
     if len(train_dataset) == 0:
         raise ValueError("Training dataset is empty. Check data source and path.")
-    if len(val_dataset) == 0:
-        raise ValueError("Validation dataset is empty. Check data source and path.")
+    
+    if len(test_dataset) == 0:
+        raise ValueError("Test dataset is empty. Check data source and path.")
 
     # pytorch dataloader
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=32, shuffle=True)
-    val_dataloader = DataLoader(dataset=val_dataset, batch_size=32, shuffle=False)
-    
-    return train_dataloader, val_dataloader
+    test_dataloader = DataLoader(dataset=test_dataset, batch_size=32, shuffle=False)
+
+    return train_dataloader, test_dataloader
 
 
 def parse_image_targets(env_val):
@@ -159,7 +147,7 @@ def parse_image_targets(env_val):
     targets = dict()
     splits = env_val.split(",")
     for sp in splits:
-        label=None
+        label = None
         sp = sp.rstrip()
         if "#" in sp:
             parts = sp.split("#")
@@ -167,23 +155,24 @@ def parse_image_targets(env_val):
             if not os.path.exists(targets_dir):
                 print("Predict targets dir not exist: %s" % targets_dir)
                 raise BaseException("Folder not found")
-            
+
             label = parts[1].rstrip()
             targets[targets_dir] = label
         else:
             if not os.path.exists(sp):
                 print("Predict targets dir not exist: %s" % targets_dir)
                 raise BaseException("Folder not found")
-            
-            label=pathlib.PurePath(sp).name
+
+            label = pathlib.PurePath(sp).name
             targets[sp] = label
 
     return targets
 
+
 def load_test_data(targets_env_val):
     '''
     Load dataset for testing
-    Return: 
+    Return:
         * images: dict[image path] = fact label
     '''
     targets = parse_image_targets(targets_env_val)
@@ -198,6 +187,7 @@ def load_test_data(targets_env_val):
                     data[image_path] = targets[target_folder]
 
     return data
+
 
 def get_1st_tensor(dataloader):
     '''

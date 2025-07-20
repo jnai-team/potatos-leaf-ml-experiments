@@ -12,7 +12,7 @@
 # ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
@@ -37,31 +37,47 @@ import pandas as pd
 import shutil
 from torch import nn as nn
 
-# Get ENV
-from env import ENV, ENV_LOCAL_RC
-import trainer
-import visual
-from image_dataset import load_dev_data
-from common.utils import get_humanreadable_timestamp
-from common.logger import FileLogger
+'''
+Get ENV
+'''
+ENV_LOCAL_RC = os.path.join(curdir, os.pardir, os.pardir, ".env")
+from env3 import load_env
+ENV = load_env(dotenv_file=ENV_LOCAL_RC)
 
+'''
+Constants
+'''
+from common.utils import get_humanreadable_timestamp, read_dataset_name
 ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
-DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
-# DATASET_NAME = "sample4"
-DATASET_NAME = ENV.str("DATASET_NAME", None)
 MODEL_NAME = "resnet_model50"
 MODEL_ID = get_humanreadable_timestamp()
 RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
-HYPER_PARAMS_FILE = os.path.join(RESULT_DIR, "hyper_params.json") # 超参数
+DATA_ROOT_DIR = ENV.get("DATA_ROOT_DIR", os.path.join(ROOT_DIR, "data"))
+DATASET_NAME = read_dataset_name(DATA_ROOT_DIR)
+HYPER_PARAMS_FILE = os.path.join(RESULT_DIR, "hyper_params.json")  # 超参数
 HYPER_PARAMS = dict()
-LOG_FILE = os.path.join(RESULT_DIR, "train.log")
-logger = FileLogger(LOG_FILE)
+
+'''
+Init logger
+'''
+os.environ['LOG_FILE'] = os.path.join(RESULT_DIR,
+                                      "train.log")  # set logger properties before import log5
+import log5
+logger = log5.get_logger(logger_name=log5.LN(__name__), output_mode=log5.OUTPUT_BOTH)
+
+'''
+Actural Work
+'''
+import trainer
+import visual
+from image_dataset import load_dev_data
 
 
 if DATASET_NAME is None:
     raise "Error, DATASET_NAME is None"
 
 logger.info("Train with dataset name %s" % DATASET_NAME)
+
 
 def add_custom_layers(model, last_layer_num):
     for param in model.parameters():
@@ -77,7 +93,8 @@ def add_custom_layers(model, last_layer_num):
         nn.Linear(1024, 512),
         nn.ReLU(),
         nn.Dropout(0.5),
-        nn.Linear(512, last_layer_num)  # Assuming you have defined num_classes for your specific task
+        # Assuming you have defined num_classes for your specific task
+        nn.Linear(512, last_layer_num)
     )
 
     # Replace the last layer of the ResNet-50 model with the custom layers
@@ -85,39 +102,12 @@ def add_custom_layers(model, last_layer_num):
 
     return model
 
-def get_resnet_dataloaders(label2num, split_data_name):
+
+def get_resnet_dataloaders(label2num):
     resnet_train_dataloader, resnet_val_dataloader = load_dev_data(label2num=label2num,
-                                                                                             split_data_name=split_data_name)
+                                                                   data_root_dir=DATA_ROOT_DIR)
 
     return resnet_train_dataloader, resnet_val_dataloader
-
-
-# def test_accuracy_resnet(model, dataloader, device):
-#     # empty list store labels
-#     predict_label_list = []
-#     actual_label_list = []
-
-#     # eval mode
-#     model.eval()
-
-#     for images, labels in dataloader:
-#         for label in labels:
-#             label = label.item()
-#             actual_label_list.append(label)
-
-#         for image in images:
-#             with torch.inference_mode():
-#                 image = image.to(device)
-#                 # add batch_size and device
-#                 image = image.unsqueeze(dim=0)
-#                 # logits
-#                 logits = model(image)
-#                 # lables
-#                 label = torch.argmax(logits).item()
-#                 predict_label_list.append(label)
-
-#     accuracy = visual.accuracy_score(actual_label_list, predict_label_list)
-#     return accuracy * 100
 
 
 def main():
@@ -125,10 +115,10 @@ def main():
         os.makedirs(RESULT_DIR)
 
     print("Save result into dir %s" % RESULT_DIR)
-    print("Log file %s" % LOG_FILE)
+    print("Log file %s" % os.environ['LOG_FILE'])
     training_times = pd.DataFrame(columns=['Model', 'Training_Time(Minutes)'])
     training_times.to_csv(os.path.join(RESULT_DIR, "training_time.csv"), index=False)
-    
+
     # copy .env as params
     shutil.copyfile(ENV_LOCAL_RC, os.path.join(RESULT_DIR, ".env"))
 
@@ -140,19 +130,17 @@ def main():
     '''
     Load dataloader and class labels metadata
     '''
-    split_data_name = "%s_pp_1" % DATASET_NAME
-    logger.info(">> Used dataset splitted data %s" % os.path.join(DATA_ROOT_DIR, split_data_name))
-    label2num_file = os.path.join(DATA_ROOT_DIR, "%s.labels.label2num.json" % DATASET_NAME)
+    label2num_file = os.path.join(DATA_ROOT_DIR, "labels", "label2num.json")
     if not os.path.exists(label2num_file):
         raise "Not exist %s" % label2num_file
-    
+
     label2num = None
     with open(label2num_file, "r") as fin:
         label2num = json.load(fin)
 
-
     NUM_CLASSES = len(label2num.keys())
-    resnet_train_dataloader, resnet_val_dataloader = get_resnet_dataloaders(label2num, split_data_name)
+    resnet_train_dataloader, resnet_test_dataloader = get_resnet_dataloaders(
+        label2num)
 
     '''
     Load model
@@ -169,7 +157,10 @@ def main():
     # visual.export_onnx_archive(model=resnet_model_50, filepath=model_onnx_file, input_sample=input_sample)
     # logger.info("onnx file --> %s" % model_onnx_file)
 
-    model_graph_file = visual.export_model_graph(model=resnet_model_50, input_sample=input_sample, directory = RESULT_DIR)
+    model_graph_file = visual.export_model_graph(
+        model=resnet_model_50,
+        input_sample=input_sample,
+        directory=RESULT_DIR)
     logger.info("model graph file saved --> %s" % model_graph_file)
 
     '''
@@ -177,28 +168,27 @@ def main():
     '''
     # Actual training ResNet model
     resnet_model_50.train()
-    HYPER_PARAMS["lr"] = ENV.float("HYPER_PARAMS_LR", 0.0005)
-    HYPER_PARAMS["epochs"] = ENV.int("HYPER_PARAMS_EPOCHS", 10)
-    HYPER_PARAMS["patience"] = ENV.int("HYPER_PARAMS_PATIENCE", 5)
+    HYPER_PARAMS["lr"] = float(ENV.get("HYPER_PARAMS_LR", 0.0005))
+    HYPER_PARAMS["epochs"] = int(ENV.get("HYPER_PARAMS_EPOCHS", 10))
+    HYPER_PARAMS["patience"] = int(ENV.get("HYPER_PARAMS_PATIENCE", 5))
     with open(HYPER_PARAMS_FILE, "w") as fout:
         json.dump(HYPER_PARAMS, fout, ensure_ascii=False, indent=4)
-        
-    dic_results, training_time = trainer.training_loop(model=resnet_model_50,
-                                                          train_dataloader=resnet_train_dataloader,
-                                                          val_dataloader=resnet_val_dataloader,
-                                                          device=trainer.device,
-                                                          epochs=HYPER_PARAMS["epochs"],
-                                                          lr=HYPER_PARAMS["lr"],
-                                                          patience=HYPER_PARAMS["patience"],
-                                                          logger=logger)
 
-    
+    dic_results, training_time = trainer.training_loop(model=resnet_model_50,
+                                                       train_dataloader=resnet_train_dataloader,
+                                                       val_dataloader=resnet_test_dataloader,
+                                                       device=trainer.device,
+                                                       epochs=HYPER_PARAMS["epochs"],
+                                                       lr=HYPER_PARAMS["lr"],
+                                                       patience=HYPER_PARAMS["patience"],
+                                                       logger=logger)
+
     '''
     Paint figures
     '''
     # Add the 'Train loss' and 'Val loss' traces as lines
     fig = visual.go_figure(title="Loss over Epochs", xaxis_title="Epochs", yaxis_title="Loss", data=[dict({
-        "name":"Train loss",
+        "name": "Train loss",
         "numbers": dic_results["Train_loss"],
         "mode": "lines"
     }), dict({
@@ -210,15 +200,16 @@ def main():
     visual.save_figure2jpg(fig, os.path.join(RESULT_DIR, "loss_graph.jpg"))
 
     # Create the figure for the chart
-    fig = visual.go_figure(title="Accuracy over Epochs", xaxis_title="Epochs", yaxis_title="Accuracy", data=[dict({
-        "name": "Train Accuracy",
-        "numbers": dic_results["Train_Accuracy"],
-        "mode": "lines"
-    }), dict({
-        "name": "Val Accuracy",
-        "numbers": dic_results["Validation_Accuracy"],
-        "mode": "lines"
-    })], is_show=True)
+    fig = visual.go_figure(title="Accuracy over Epochs",
+                           xaxis_title="Epochs",
+                           yaxis_title="Accuracy",
+                           data=[dict({"name": "Train Accuracy",
+                                       "numbers": dic_results["Train_Accuracy"],
+                                       "mode": "lines"}),
+                                 dict({"name": "Val Accuracy",
+                                       "numbers": dic_results["Validation_Accuracy"],
+                                       "mode": "lines"})],
+                           is_show=True)
     visual.save_figure2jpg(fig, os.path.join(RESULT_DIR, "accuracy_graph.jpg"))
 
     '''
@@ -241,6 +232,7 @@ def main():
     model_saved_path = os.path.join(RESULT_DIR, 'model.pth')
     torch.save(resnet_model_50, model_saved_path)
     logger.info("Saved model %s" % model_saved_path)
+
 
 if __name__ == '__main__':
     main()

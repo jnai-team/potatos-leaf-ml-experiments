@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#===============================================================================
+# ===============================================================================
 #
 # Copyright (c) 2025 <> All Rights Reserved
 #
@@ -9,16 +9,17 @@
 # Author: Hai Liang Wang
 # Date: 2025-03-19:19:00:28
 #
-#===============================================================================
+# ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
 __date__ = "2025-03-19:19:00:28"
 
-import os, sys
+import os
+import sys
 curdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(curdir)
 
@@ -39,8 +40,8 @@ from torchview import draw_graph
 from env import ENV
 
 
-def go_figure(title, xaxis_title, yaxis_title, data, is_show=True, \
-            legend_x=0.05, legend_y=1.1, width=800, height=400):
+def go_figure(title, xaxis_title, yaxis_title, data, is_show=True,
+              legend_x=0.05, legend_y=1.1, width=800, height=400):
     '''
     Make a figure with go
     '''
@@ -49,9 +50,8 @@ def go_figure(title, xaxis_title, yaxis_title, data, is_show=True, \
 
     for x in data:
         fig.add_trace(go.Scatter(x=list(range(1, len(x["numbers"]) + 1)),
-                                y=x["numbers"], mode=x["mode"], name=x["name"]))
+                                 y=x["numbers"], mode=x["mode"], name=x["name"]))
 
-    
     # Update the layout for better visualization
     fig.update_layout(title=title,
                       xaxis_title=xaxis_title,
@@ -92,24 +92,31 @@ def export_onnx_archive(model, filepath, input_sample):
         input_names=["input"],  # Rename inputs for the ONNX model
         dynamo=True             # True or False to select the exporter to use
     )
-    
+
     if not os.path.exists(filepath):
         raise BaseException("File %s not found" % filepath)
 
     if is_training:
         model.train()
 
-def export_model_graph(model, input_sample, directory, filename = "model_graph", format = "svg", scale=5.0):
+
+def export_model_graph(
+        model,
+        input_sample,
+        directory,
+        filename="model_graph",
+        format="svg",
+        scale=5.0):
     '''
     Export model as image with torchview
     https://mert-kurttutan.github.io/torchview/reference/torchview/#torchview.torchview.draw_graph
     '''
-    model_graph = draw_graph(model, 
-                             input_size=input_sample.shape, 
-                             expand_nested=True, 
+    model_graph = draw_graph(model,
+                             input_size=input_sample.shape,
+                             expand_nested=True,
                              directory=directory)
     model_graph.visual_graph.node_attr["fontname"] = "Helvetica"
-    model_graph.resize_graph(scale=scale) # scale as per the view
+    model_graph.resize_graph(scale=scale)  # scale as per the view
     # https://graphviz.readthedocs.io/en/stable/api.html#graphviz.Graph
     model_graph.visual_graph.render(filename=filename, directory=directory, format=format)
     filepath = os.path.join(directory, "%s.%s" % (filename, format))
@@ -118,4 +125,3 @@ def export_model_graph(model, input_sample, directory, filename = "model_graph",
         raise BaseException("Error on export torchview graph %s" % filepath)
 
     return filepath
-    

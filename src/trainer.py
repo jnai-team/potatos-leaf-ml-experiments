@@ -12,7 +12,7 @@
 # ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
@@ -45,6 +45,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # optimizer -> Adam(lr = 0.0005)
 
 # Train -> train_loss, train_acc
+
+
 def train(model, dataloader, loss_fn, optimizer, device):
     train_loss, train_acc = 0, 0
 
@@ -114,17 +116,17 @@ def classify_custom_images(model, dataloader, device, df):
                 label = torch.argmax(logits).item()
                 text_label = df[df['class id'] == label]['labels'].iloc[0]
                 pred_labels.append(text_label)
-    
+
     return pred_labels
 
 
-def training_loop(model, 
-                  train_dataloader, 
-                  val_dataloader, 
-                  device, 
-                  epochs, 
+def training_loop(model,
+                  train_dataloader,
+                  val_dataloader,
+                  device,
+                  epochs,
                   lr,
-                  patience, 
+                  patience,
                   logger):
     # empty dict for restore results
     results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
@@ -163,9 +165,9 @@ def training_loop(model,
 
         # print results for each epoch
         logger.info(f"Epoch: {epoch + 1}\n"
-              f"Train loss: {train_loss:.4f} | Train accuracy: {(train_acc * 100):.3f}%\n"
-              f"Val loss: {val_loss:.4f} | Val accuracy: {(val_acc * 100):.3f}%\n"
-              f"| Epoch time: {epoch_time:.2f} seconds")
+                    f"Train loss: {train_loss:.4f} | Train accuracy: {(train_acc * 100):.3f}%\n"
+                    f"Val loss: {val_loss:.4f} | Val accuracy: {(val_acc * 100):.3f}%\n"
+                    f"| Epoch time: {epoch_time:.2f} seconds")
 
         # record results for each epoch
         results["train_loss"].append(train_loss)

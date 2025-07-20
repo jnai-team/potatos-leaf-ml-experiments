@@ -12,7 +12,7 @@
 # ===============================================================================
 
 """
-   
+
 """
 __copyright__ = "Copyright (c) 2020 . All Rights Reserved"
 __author__ = "Hai Liang Wang"
@@ -50,6 +50,7 @@ DATA_ROOT_DIR = ENV.get("DATA_ROOT_DIR", None)
 DATA_TRAIN_RECORDS_RATIO = float(ENV.get("DATA_TRAIN_RECORDS_RATIO", "0.9"))
 DATA_TEST_RECORDS_SPLIT = ENV.get("DATA_TEST_RECORDS_SPLIT", "false")
 DATA_TEST_RECORDS_RATIO = float(ENV.get("DATA_TEST_RECORDS_RATIO", "0.1"))
+
 
 def move_images_to_train_and_valid(total_data, labels, train_img_dir, val_img_dir):
     '''
@@ -94,6 +95,7 @@ def splitdata_from_validate_to_test(valid_dir, test_dir, ratio):
         for x in range(test_num):
             shutil.move(os.path.join(valid_dir, shuffled[x]), test_dir)
 
+
 def split_dataset(dataset_name):
     if not DATA_ROOT_DIR:
         print("DATA_ROOT_DIR not def in ENV")
@@ -105,7 +107,7 @@ def split_dataset(dataset_name):
         logger.info("DATA_ROOT_DIR not exist on filesystem %s" % DATA_ROOT_DIR)
 
     logger.info(">> handle data on %s" % DATA_ROOT_DIR)
-    
+
     DATASET_NAME = dataset_name
     DATASET_DIR = os.path.join(DATA_ROOT_DIR, DATASET_NAME)
     if not os.path.exists(DATASET_DIR):
@@ -115,13 +117,13 @@ def split_dataset(dataset_name):
     label_class_csv = os.path.join(DATA_ROOT_DIR, "%s.labels.autogen.csv" % DATASET_NAME)
 
     with open(label_class_csv, "w") as fout:
-        fout.writelines(["filepath,label\n"])
+        fout.writelines(["filepath, label\n"])
 
     # https://docs.python.org/3/library/pathlib.html#general-properties
     # DATA_PATH_OBJ = Path(DATASET_DIR)
     # subclassfolder = [f.parts[-1] for f in DATA_PATH_OBJ.iterdir() if f.is_dir()]
     subclassfolder = ["train"]
-    
+
     output_lines = []
     for x in subclassfolder:
         target_images_folder = os.path.join(DATASET_DIR, x)
@@ -129,14 +131,15 @@ def split_dataset(dataset_name):
             print("root", root)
             print("dirs", dirs)
             for y in images:
+                print("dirname", os.path.dirname(root))
                 print("y", y)
                 sys.exit()
-                output_lines.append("%s/%s/%s,%s\n" % (DATASET_NAME, x,y,x))
+                output_lines.append("%s/%s/%s, %s\n" % (DATASET_NAME, x, y, x))
 
     with open(label_class_csv, "a") as fout:
         fout.writelines(output_lines)
 
-    SPLIITED_DATA = os.path.join(DATA_ROOT_DIR, "%s_pp_1" % DATASET_NAME) # pp is pre-process
+    SPLIITED_DATA = os.path.join(DATA_ROOT_DIR, "%s_pp_1" % DATASET_NAME)  # pp is pre-process
     SPLIITED_DATA_TRAIN = os.path.join(SPLIITED_DATA, "train")
     SPLIITED_DATA_VAL = os.path.join(SPLIITED_DATA, "valid")
     SPLIITED_DATA_TEST = os.path.join(SPLIITED_DATA, "test")
@@ -150,7 +153,7 @@ def split_dataset(dataset_name):
 
     with open(label_class_csv, 'r') as csvfile:
         reader = csv.reader(csvfile)
-        next(reader) # skip header
+        next(reader)  # skip header
         for row in reader:
             if len(row) >= 2:
                 img_filename = row[0].strip()
@@ -201,15 +204,22 @@ def split_dataset(dataset_name):
     os.mkdir(SPLIITED_DATA_VAL)
 
     for x in class_labels:
-        move_images_to_train_and_valid(total_data, [x], os.path.join(SPLIITED_DATA_TRAIN, x), os.path.join(SPLIITED_DATA_VAL, x))
+        move_images_to_train_and_valid(
+            total_data, [x], os.path.join(
+                SPLIITED_DATA_TRAIN, x), os.path.join(
+                SPLIITED_DATA_VAL, x))
 
     logger.info("DATA_TEST_RECORDS_SPLIT is %s" % DATA_TEST_RECORDS_SPLIT)
     if DATA_TEST_RECORDS_SPLIT == "true":
         os.mkdir(SPLIITED_DATA_TEST)
         for x in class_labels:
-            splitdata_from_validate_to_test(os.path.join(SPLIITED_DATA_VAL, x), os.path.join(SPLIITED_DATA_TEST, x), DATA_TEST_RECORDS_RATIO)
+            splitdata_from_validate_to_test(
+                os.path.join(
+                    SPLIITED_DATA_VAL, x), os.path.join(
+                    SPLIITED_DATA_TEST, x), DATA_TEST_RECORDS_RATIO)
     elif os.path.exists(os.path.join(DATASET_DIR, "test")):
-        if os.path.exists(SPLIITED_DATA_TEST): os.removedirs(os.mkdir(SPLIITED_DATA_TEST))
+        if os.path.exists(SPLIITED_DATA_TEST):
+            os.removedirs(os.mkdir(SPLIITED_DATA_TEST))
         shutil.copytree(os.path.join(DATASET_DIR, "test"), SPLIITED_DATA_TEST)
 
 
@@ -219,7 +229,9 @@ def split_dataset(dataset_name):
 import unittest
 
 
-# run testcase: python /d/git/Sports-Image-Classification-YOLO-ResNet/src/preprocess_data.py Test.testExample
+# run testcase: python
+# /d/git/Sports-Image-Classification-YOLO-ResNet/src/preprocess_data.py
+# Test.testExample
 class Test(unittest.TestCase):
     def setUp(self):
         pass
@@ -233,7 +245,7 @@ class Test(unittest.TestCase):
 
         if not dataset_name:
             raise BaseException("ENV DATASET_NAME not exist")
-        
+
         dataset_path = os.path.join(DATA_ROOT_DIR, dataset_name)
 
         if not os.path.exists(dataset_path):

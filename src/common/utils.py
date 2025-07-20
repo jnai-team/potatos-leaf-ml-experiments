@@ -26,7 +26,6 @@ import sys
 import subprocess
 from six import string_types, u
 import shutil
-import logging
 from contextlib import contextmanager
 import numpy as np
 import numbers
@@ -51,7 +50,7 @@ except ImportError:
 try:
     from smart_open import smart_open
 except ImportError:
-    logging.debug("smart_open library not found; falling back to local-filesystem-only")
+    print("smart_open library not found; falling back to local-filesystem-only")
 
     def make_closing(base, **attrs):
         """
@@ -310,7 +309,13 @@ def exec_cmd(cmd, cwd=os.getcwd()):
     return
     '''
     # console_log("exec_cmd cwd[%s]: %s" % (cwd, cmd))
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=ENVIRON, cwd=cwd)
+    p = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True,
+        env=ENVIRON,
+        cwd=cwd)
     out, err = p.communicate()
     # if out:
     #     console_log("  exec_cmd result[out]: %s" % out)
@@ -411,8 +416,21 @@ def get_substring_as_tail(target, num):
 
     return target[::-1][0:num][::-1]
 
+
 def hash_string(uttr):
     '''
     generate md5 based on input text
     '''
     return hashlib.md5(uttr.encode()).hexdigest()
+
+
+def read_dataset_name(folderpath):
+    '''
+    Read dataset name
+    '''
+    dataset_name_file = os.path.join(folderpath, "DATASET_NAME")
+    if os.path.exists(dataset_name_file):
+        with open(dataset_name_file, "r", encoding="utf8") as fin:
+            return fin.readlines()[0].strip()
+    else:
+        return None

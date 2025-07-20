@@ -64,7 +64,7 @@ Run script to train model.
 bin/002.train_model.sh
 ```
 
-After the training, model files are saved into a dir in `DATA_ROOT_DIR`, e.g.
+After the training, model files are saved into a dir in `$ROOT_DIR/results`, e.g.
 
 ![alt text](./assets/media/1742894625155.png)
 
@@ -95,6 +95,14 @@ Check out the console log for predict details.
 
 
 ![alt text](./assets/media/1742895300964.png)
+
+# Contributing
+
+* format code
+
+```
+./bin/fmt_py.sh
+```
 
 # Licesne
 [LICENSE](./LICENSE)
