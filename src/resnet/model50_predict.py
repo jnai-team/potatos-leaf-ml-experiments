@@ -31,31 +31,42 @@ else:
 import json
 import torch
 
-# Get ENV
-from env import ENV
-from common.logger import FileLogger
+'''
+ENV
+'''
+ENV_LOCAL_RC = os.path.join(curdir, os.pardir, os.pardir, ".env")
+from env3 import load_env
+ENV = load_env(dotenv_file=ENV_LOCAL_RC)
+ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
+DATA_ROOT_DIR = ENV.get("DATA_ROOT_DIR", os.path.join(ROOT_DIR, "data"))
+MODEL_NAME = "resnet_model50"
+MODEL_ID = ENV.get("MODEL_ID", None)
+RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
+PREDICT_TARGETS_DIR = ENV.get("PREDICT_TARGETS_DIR", None)
+PREDICT_RESULT = os.path.join(RESULT_DIR, "predict_result.csv")
+PREDICT_LOG = os.path.join(RESULT_DIR, "predict.log")
+
+'''
+Logging
+'''
+os.environ["LOG_FILE"] = PREDICT_LOG
+import log5
+logger = log5.get_logger(logger_name=log5.LN(__name__), output_mode=log5.OUTPUT_BOTH)
+
+
+'''
+Begin actucal works
+'''
+device = "cuda" if torch.cuda.is_available() else "cpu"
 from transforms import read_image
 from image_dataset import load_test_data
 import visual
 
-ROOT_DIR = os.path.join(curdir, os.pardir, os.pardir)
-DATA_ROOT_DIR = ENV.str("DATA_ROOT_DIR", None)
-DATASET_NAME = ENV.str("DATASET_NAME", None)
-MODEL_NAME = "resnet_model50"
-MODEL_ID = ENV.str("MODEL_ID", None)
-RESULT_DIR = os.path.join(ROOT_DIR, "results", MODEL_NAME, MODEL_ID)
-PREDICT_TARGETS = ENV.str("PREDICT_TARGETS", None)
-PREDICT_RESULT = os.path.join(RESULT_DIR, "predict_result.csv")
-PREDICT_LOG = os.path.join(RESULT_DIR, "predict.log")
-
-logger = FileLogger(PREDICT_LOG)
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
 '''
 Parse predict data labels
 '''
-if PREDICT_TARGETS is None:
-    raise BaseException("ERROR, PREDICT_TARGETS should not be None.")
+if PREDICT_TARGETS_DIR is None:
+    raise BaseException("ERROR, PREDICT_TARGETS_DIR should not be None.")
 
 if not os.path.exists(RESULT_DIR):
     raise BaseException("Error, not found %s" % RESULT_DIR)
@@ -97,11 +108,11 @@ def main():
     '''
     Load dataloader and class labels metadata
     '''
-    label2num_file = os.path.join(DATA_ROOT_DIR, "%s.labels.label2num.json" % DATASET_NAME)
+    label2num_file = os.path.join(DATA_ROOT_DIR, "labels", "label2num.json")
     if not os.path.exists(label2num_file):
         raise "Not exist %s" % label2num_file
 
-    num2label_file = os.path.join(DATA_ROOT_DIR, "%s.labels.num2label.json" % DATASET_NAME)
+    num2label_file = os.path.join(DATA_ROOT_DIR, "labels", "num2label.json")
     if not os.path.exists(num2label_file):
         raise "Not exist %s" % num2label_file
 
@@ -112,7 +123,7 @@ def main():
     '''
     parse targets
     '''
-    targets = load_test_data(PREDICT_TARGETS)
+    targets = load_test_data(PREDICT_TARGETS_DIR)
 
     '''
     load all images as targets
